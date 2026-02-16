@@ -1,0 +1,716 @@
+---
+title: "Revisiones salariales y conflictos colectivos"
+
+execute:
+  echo: false
+  warning: false
+  message: false
+
+format:
+  gfm:
+    fig-format: png
+    fig-transparent: true
+  html:
+    fig-format: png
+    fig-transparent: true
+knitr:
+  opts_chunk:
+    dev: svg
+    dev.args: { bg: "transparent" }
+---
+
+*Disclaimer: Este repositorio sirve para automatizar el reporte sobre revisiones salariales y negociaciones colectivas presentado en el informe mensual del comportamiento de la economía de la Comisión Nacional de los Salarios Mínimos*
+
+## Jurisdicción Federal
+
+```{r}
+
+rm(list = ls());gc()
+
+source("rscrips/theme_conasami.R")
+
+pacman::p_load(
+  tidyverse,
+  dplyr,
+  readxl,
+  janitor,
+  lubridate,
+  rnaturalearth,
+  rnaturalearthhires
+)
+
+fecha_interes  <- ymd("2026-01-01")
+
+fecha_inicio <- ymd("2021-01-01")
+
+# Datos ------------------------------------------------------------------------
+
+federal <- read_excel("excels/negociaciones_stata.xlsx", sheet = "j_federal") |>
+  clean_names() |>
+  mutate(
+    fecha = as.Date(fecha),
+    direc = as.factor(ifelse(real >= 0, "Positivo", "Negativo"))
+  ) |>
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes)
+
+local <- read_excel("excels/negociaciones_stata.xlsx", sheet = "j_local") |>
+  clean_names() |>
+  mutate(
+    fecha = as.Date(fecha),
+    direc = as.factor(ifelse(real >= 0, "Positivo", "Negativo"))
+  ) |>
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes)
+
+revisiones <- rbind(
+  federal |> mutate(juris = "Federal"),
+  local |> mutate(juris = "Local")
+) |> 
+  mutate(
+    year = as.integer(year), 
+    mes = as.integer(mes),
+    mes_nombre = format(fecha, "%B"),
+    revisiones = as.integer(revisiones),
+    trabajadores = as.integer(trabajadores)
+  )
+
+rm(federal, local)
+
+```
+
+En lo que vamos de `r revisiones |> filter(fecha == fecha_interes) |> pull(year)` se han realizado `r revisiones |> filter(juris == "Federal") |> group_by(year) |> summarise(revisiones = sum(revisiones)) |> filter(year == year(fecha_interes)) |> pull(revisiones)` revisiones salariales en la jurisdicción federal, que involucraron a `r revisiones |> filter(juris == "Federal") |> group_by(year) |> summarise(trabajadores = sum(trabajadores)) |> filter(year == year(fecha_interes)) |> pull(trabajadores) |> scales::comma()` personas trabajadoras, quienes lograron incrementos promedio de `r revisiones |> filter(juris == "Federal") |> group_by(year) |> summarise(nom = mean(nominal)) |> filter(year == year(fecha_interes)) |> pull(nom) |> scales::percent(accuracy = 0.01, scale = 1)` y de `r revisiones |> filter(juris == "Federal") |> group_by(year) |> summarise(real = mean(real)) |> filter(year == year(fecha_interes)) |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)` nominal y real, respectivamente. 
+
+Durante el mes de `r revisiones |> filter(fecha == fecha_interes) |> pull(mes_nombre)` de `r revisiones |> filter(fecha == fecha_interes & juris == "Federal") |> pull(year)`, se registraron `r revisiones |> filter(fecha == fecha_interes & juris == "Federal") |> pull(revisiones)` revisiones en la jurisdicción federal, que involucraron a `r revisiones |> filter(fecha == fecha_interes & juris == "Federal") |> pull(trabajadores) |> scales::comma()` personas trabajadoras.
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+barras <- revisiones |>
+  select(fecha, year, mes, juris, direc, revisiones, trabajadores) |>
+  pivot_longer(
+    cols = c(revisiones, trabajadores),
+    names_to = "variable",
+    values_to = "valor"
+  ) |>
+  mutate(year = lubridate:::floor_date(fecha, unit = "year"))
+
+ggplot(barras |> filter(juris == "Federal" &
+                           mes == month(as.Date(fecha_interes)))) +
+  geom_col(aes(x = year, y = valor), fill = "#98989A", color = "#161a1d") +
+  geom_text(
+    data = barras |> filter(juris == "Federal" &
+                               mes == month(as.Date(fecha_interes)) & valor != 0),
+    mapping = aes(
+      x = year,
+      y = valor,
+      label = scales::label_number(scale = 1)(valor)
+    ),
+    vjust = -0.4,
+    size = 2.5,
+    fontface = "bold",
+    show.legend = FALSE,
+    color = "#161a1d"
+  ) +
+  facet_wrap( ~ variable, scales = "free_y", labeller = as_labeller(c(
+    revisiones   = "Revisiones", trabajadores = "Personas trabajadoras"
+  ))) +
+  scale_y_continuous(labels = scales::label_number(scale = 1),
+                     expand = expansion(mult = c(0, 0.1))) +
+  scale_x_date(date_labels = "%Y",
+               breaks = seq(as.Date(min(revisiones$fecha)), as.Date(max(revisiones$fecha)), by = "year")) +
+  theme_conasami() +
+  labs(x = "", y = "", title = "") + 
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_text(color = "white"),
+    axis.text.x = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    text = element_text(color = "white"),
+    axis.ticks = element_line(color = "white")
+  )
+
+```
+
+
+ Estas revisiones tuvieron un incremento promedio nominal de `r revisiones |> filter(fecha == fecha_interes & juris == "Federal") |> pull(nominal) |> scales::percent(accuracy = 0.01, scale = 1)` y real de `r revisiones |> filter(fecha == fecha_interes & juris == "Federal") |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)`.
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+ggplot(revisiones |> filter(juris == "Federal")) +
+  geom_point(
+    mapping = aes(x = fecha, y = real, color = direc),
+    shape = 1,
+    show.legend = FALSE
+  ) +
+  geom_line(mapping = aes(x = fecha, y = real), color = "#611232") +
+  geom_bar(
+    data = revisiones |> filter(juris == "Federal"),
+    mapping = aes(x = fecha, y = real, fill = direc),
+    stat = "identity",
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Positivo" = "#1e5b4f",
+      "Negativo" = "#611232"
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Positivo" = "#1e5b4f",
+      "Negativo" = "#611232"
+    )
+  ) +
+  geom_text(
+    data = revisiones |>
+      filter(
+        juris == "Federal" &
+          fecha == fecha_interes
+      ),
+    mapping = aes(
+      x = fecha,
+      y = real,
+      label = sprintf("%.2f", real),
+      color = direc
+    ),
+    vjust = -.5,
+    hjust = -.5,
+    size = 2.5,
+    fontface = "bold",
+    show.legend = FALSE
+  ) +
+  geom_abline(
+    slope = 0,
+    intercept = 0,
+    color = "black",
+    size = 0.5,
+    linetype = "dotted"
+  ) +
+  scale_x_date(
+    date_labels = "%Y",
+    breaks = seq(
+      as.Date(min(revisiones$fecha)),
+      as.Date(max(revisiones$fecha)),
+      by = "year"
+    )
+  ) +
+  labs(x = "", y = "Variación Salarial Real (%)", color = "") +
+  theme_conasami() +
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_text(color = "white"),
+    axis.text.x = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    text = element_text(color = "white"),
+    axis.ticks = element_line(color = "white")
+  )
+
+  
+```
+
+## Jurisdicción local
+
+En `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(year)`, y hasta el mes de `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(mes_nombre)`, fecha de los últimos datos disponibles, se han realizado `r revisiones |> filter(juris == "Local") |> group_by(year) |> summarise(revisiones = sum(revisiones)) |> filter(year == max(year)) |> pull(revisiones) |> scales::comma()` revisiones en la jurisdicción local, que involucraron a `r revisiones |> filter(juris == "Local") |> group_by(year) |> summarise(trabajadores = sum(trabajadores)) |> filter(year == max(year)) |> pull(trabajadores) |> scales::comma()` personas trabajadoras, quienes lograron incrementos promedio de `r revisiones |> filter(juris == "Local") |> group_by(year) |> summarise(nom = mean(nominal)) |> filter(year == max(year)) |> pull(nom) |> scales::percent(accuracy = 0.01, scale = 1)` y de `r revisiones |> filter(juris == "Local") |> group_by(year) |> summarise(real = mean(real)) |> filter(year == max(year)) |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)` nominal y real, respectivamente. 
+
+Durante el mes de `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(mes_nombre)` de `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(year)`, última cifra disponible, se realizarón `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(revisiones) |> scales::comma()` revisiones en la jurisdicción local, que involucraron a `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(trabajadores) |> scales::comma()` personas trabajadoras.
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+ggplot(barras |> filter(juris == "Local") |> filter(mes == month(as.Date(max(fecha))))) +
+  geom_col(aes(x = year, y = valor), fill = "#98989A", color = "#161a1d") +
+  geom_text(
+    data = barras |> filter(juris == "Local") |> 
+                               filter(mes == month(as.Date(max(fecha))) & valor != 0),
+    mapping = aes(
+      x = year,
+      y = valor,
+      label = scales::label_number(scale = 1)(valor)
+    ),
+    vjust = -0.4,
+    size = 2.5,
+    fontface = "bold",
+    show.legend = FALSE,
+    color = "#161a1d"
+  ) +
+  facet_wrap( ~ variable, scales = "free_y", labeller = as_labeller(c(
+    revisiones   = "Revisiones", trabajadores = "Personas trabajadoras"
+  ))) +
+  scale_y_continuous(labels = scales::label_number(scale = 1),
+                     expand = expansion(mult = c(0, 0.1))) +
+  scale_x_date(date_labels = "%Y",
+               breaks = seq(as.Date(min(revisiones$fecha)), as.Date(max(revisiones$fecha)), by = "year")) +
+  theme_conasami() +
+  labs(x = "", y = "", title = "") + 
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_text(color = "white"),
+    axis.text.x = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    text = element_text(color = "white"),
+    axis.ticks = element_line(color = "white")
+  )
+
+```
+
+ Estas revisiones tuvieron un incremento promedio nominal de `r revisiones |>  filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(nominal) |> scales::percent(accuracy = 0.01, scale = 1)` y real de `r revisiones |> filter(juris == "Local") |> filter(fecha == max(fecha)) |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)`.
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+ggplot(revisiones |> filter(juris == "Local")) +
+  geom_point(
+    mapping = aes(x = fecha, y = real, color = direc),
+    shape = 1,
+    show.legend = FALSE
+  ) +
+  geom_line(mapping = aes(x = fecha, y = real), color = "#611232") +
+  geom_bar(
+    data = revisiones |> filter(juris == "Local"),
+    mapping = aes(x = fecha, y = real, fill = direc),
+    stat = "identity",
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Positivo" = "#1e5b4f",
+      "Negativo" = "#611232"
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Positivo" = "#1e5b4f",
+      "Negativo" = "#611232"
+    )
+  ) +
+  geom_text(
+    data = revisiones |> filter(juris == "Local") |> filter(fecha == ifelse(
+      fecha < fecha_interes, max(fecha), fecha_interes
+    )),
+    mapping = aes(
+      x = fecha,
+      y = real,
+      label = sprintf("%.2f", real),
+      color = direc
+    ),
+    vjust = -.5,
+    hjust = -.5,
+    size = 2.5,
+    fontface = "bold",
+    show.legend = FALSE
+  ) +
+  geom_abline(
+    slope = 0,
+    intercept = 0,
+    color = "black",
+    size = 0.5,
+    linetype = "dotted"
+  ) +
+  scale_x_date(
+    date_labels = "%Y",
+    breaks = seq(
+      as.Date(min(revisiones$fecha)),
+      as.Date(max(revisiones$fecha)),
+      by = "year"
+    )
+  ) +
+  labs(x = "", y = "Variación Salarial Real (%)", color = "") +
+  theme_conasami() +
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_text(color = "white"),
+    axis.text.x = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    text = element_text(color = "white"),
+    axis.ticks = element_line(color = "white")
+  )
+
+rm(revisiones, barras)
+  
+```
+
+## Revisiones por tipo de empresa 
+
+```{r}
+
+revisiones <- read_excel("excels/negociaciones_stata.xlsx", sheet = "empresas") %>%
+  clean_names() %>% 
+  mutate(fecha = as.Date(fecha)) 
+
+revisiones <- revisiones %>% 
+  pivot_longer(
+    cols = starts_with("real_")| starts_with("nominal_") | 
+      starts_with("revisiones_") | starts_with("trabajadores_"),
+    names_to = c("variable", "clase"),
+    names_sep = "_"
+  ) %>% 
+  pivot_wider(names_from = variable, values_from = value) %>% 
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes) %>% 
+  mutate(
+    clase = case_when(
+      clase == "priv" ~ "Privada",
+      clase == "pub" ~ "Pública",
+      TRUE ~ clase
+    ),
+    direc = ifelse(real >= 0, "Positivo", "Negativo"),
+    year = as.integer(year), 
+    mes = as.integer(mes),
+    mes_nombre = format(fecha, "%B"),
+    revisiones = as.integer(revisiones),
+    trabajadores = as.integer(trabajadores)
+  )
+
+```
+
+Durante `r revisiones |> filter(fecha == fecha_interes) |> pull(mes_nombre) |> unique()` de `r revisiones |> filter(fecha == fecha_interes) |> pull(year) |> unique()`, de las `r revisiones |> group_by(fecha) |> summarise(revisiones = sum(revisiones)) |> filter(fecha == fecha_interes) |> pull(revisiones) |> scales::comma()` en la jurisdicción federal, `r revisiones |> filter(fecha == fecha_interes & clase == "Privada") |> pull(revisiones) |> scales::comma()` son de empresas privadas y `r revisiones |> filter(fecha == fecha_interes & clase == "Pública") |> pull(revisiones) |> scales::comma()` en publicas. Esto involucró a `r revisiones |> filter(fecha == fecha_interes & clase == "Privada") |> pull(trabajadores) |> scales::comma()` y `r revisiones |> filter(fecha == fecha_interes & clase == "Pública") |> pull(trabajadores) |> scales::comma()` personas trabajadoras, respectivamente. En promedio, las empresas privadas tuvieron incrementos nóminales de `r revisiones |> filter(fecha == fecha_interes & clase == "Privada") |> pull(nominal) |> scales::percent(accuracy = 0.01, scale = 1)` y reales de `r revisiones |> filter(fecha == fecha_interes & clase == "Privada") |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)`. Por su parte, las empresas públicas tuvieron de `r revisiones |> filter(fecha == fecha_interes & clase == "Pública") |> pull(nominal) |> scales::percent(accuracy = 0.01, scale = 1)` y `r revisiones |> filter(fecha == fecha_interes & clase == "Pública") |> pull(real) |> scales::percent(accuracy = 0.01, scale = 1)`. 
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+ggplot(revisiones) + 
+  geom_point(
+    mapping = aes(x = fecha, y = real, color = direc),
+    show.legend = FALSE
+  ) + 
+  geom_line(mapping = aes(x = fecha, y = real),
+            color = "#611232") +
+  geom_bar(
+    mapping = aes(x = fecha, y = real, fill = direc),
+    stat = "identity",
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = c(
+    "Positivo" = "#1e5b4f",
+    "Negativo" = "#611232"
+  )) +
+  scale_color_manual(values = c(
+    "Positivo" = "#1e5b4f",
+    "Negativo" = "#611232"
+  ))+ 
+  geom_abline(
+    slope = 0,
+    intercept = 0,
+    color = "black",
+    size = 0.5,
+    linetype = "dotted"
+  ) +
+  scale_x_date(date_labels = "%Y", 
+               breaks = seq(as.Date(min(revisiones$fecha)), 
+                            as.Date(max(revisiones$fecha)), 
+                            by = "year")) +
+  facet_wrap(~clase) + 
+  geom_text(
+    data = revisiones %>% filter(fecha == fecha_interes),
+    mapping = aes(
+      x = fecha,
+      y = real,
+      label = sprintf("%.2f", real),
+      color = direc
+    ),
+    vjust = -1.5,
+    hjust = 0.5,
+    size = 2.5, 
+    fontface = "bold",
+    show.legend = FALSE
+  ) +
+  theme_conasami() + 
+  labs(x = "", y = "Variación Salarial Real (%)", color = "") +
+  theme(
+    legend.position = "bottom",
+    axis.title.y = element_text(color = "white"),
+    axis.text.x = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    text = element_text(color = "white"),
+    axis.ticks = element_line(color = "white")
+  )
+
+rm(revisiones)
+
+```
+
+## Revisiones por entidad 
+
+```{r}
+
+entidades <- read_excel("excels/negociaciones_stata.xlsx", sheet = "entidad")%>%
+  mutate(fecha = as.Date(fecha))
+
+
+entidades_long <- entidades %>% 
+  pivot_longer(cols = -c(fecha, year, mes), 
+               names_to = "entidad", 
+               values_to = "REAL")
+
+add_spaces <- function(state_name){
+  state_name <- str_replace_all(state_name, "(?<!^)([A-Z])", " \\1")
+  return(state_name)
+}
+
+entidades_long <- entidades_long %>% 
+  mutate(entidad = add_spaces(entidad))
+
+  # La función únicamente no pudo corregir Ciudadde México, es necesario cambiarlo 
+
+entidades_long <- entidades_long %>%
+  mutate(entidad = str_replace_all(entidad, "Ciudadde México", "Ciudad de México"))
+
+    # Vamos a seleccionar los datos del último mes y año.
+
+entidades_long_last <- entidades_long %>% 
+  filter(fecha == fecha_interes) %>% 
+  mutate(categoria = case_when(REAL < 0 ~ "Negativa",
+                   REAL <= 5 ~ "Hasta 5%",
+                   REAL <= 10 ~ "De 5 a 10%",
+                   REAL > 10 ~ "Mayor a 10%"))
+
+mexico <- ne_states(country = "Mexico", returnclass = "sf")
+
+# Cambia "Distrito Federal" a "Ciudad de México" en la columna 'name'
+mexico$name <- ifelse(mexico$name == "Distrito Federal", "Ciudad de México", mexico$name)
+
+# Une los datos de los estados con los datos de los incrementos reales
+  # Hacemos un casewhen para 
+
+merged_mexico <- mexico %>%
+  left_join(entidades_long_last, by = c("name" = "entidad")) 
+
+colores <- c("Negativa" = "#FDE9EF", "Hasta 5%" = "#c79dad",
+             "De 5 a 10%" = "#955870", "Mayor a 10%" = "#621132")
+```
+
+```{r}
+#| out-width: "100%" 
+#| dpi: 300
+
+ggplot(merged_mexico) +
+  geom_sf(aes(fill = REAL), color = "black") +
+  scale_fill_gradient(low = "#FDE9EF", high = "#611232") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(title = "", fill = "Variación Salarial Real (%)") +
+  guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5)) +
+  coord_sf(datum = NA) +
+  theme(
+        legend.position = c(0.2,0.2),
+        text = element_text(family = "Noto Sans", color = "white"),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank()) + 
+  labs(x = "", y = "", fill = "%")
+
+```
+
+```{r}
+#| out-width: "100%"
+#| dpi: 300
+
+entidades_long_last <- entidades_long_last %>%
+  mutate(REAL = replace_na(REAL, 0)) %>%
+  filter(REAL != 0, entidad != "...36")
+
+ggplot(entidades_long_last) +
+  geom_bar(
+    mapping = aes(x = reorder(entidad, REAL), y = REAL, fill = REAL),
+    stat = "identity"
+  ) +
+  coord_flip() +
+  scale_y_continuous(limits = c(-.5, max(entidades_long_last$REAL) * 1.1)) +
+  scale_fill_gradient(low = "#FDE9EF", high = "#611232") +
+  geom_text(
+    mapping = aes(x = reorder(entidad, REAL), y = REAL, label = round(REAL, 2)),
+    vjust = 0,
+    hjust = -.2,
+    size = 2.5
+  ) +
+  theme_conasami() +
+  theme(
+    legend.position = "",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1,
+      size = .4,
+      color = "white"
+    ),
+    axis.title.y = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    axis.ticks = element_line(color = "white"),
+    axis.title.x = element_text(color = "white")
+  ) +
+  labs(x = "", y = "Incrementos reales (%)", fill = "")
+
+rm(entidades_long_last, entidades_long, entides, mexico, merged_mexico)
+```
+
+## Revisiones por Central obrera 
+
+```{r}
+
+
+central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") %>%
+  mutate(fecha = as.Date(fecha), central = "CTM") %>%
+  rename(
+    REAL = REAL_ctm,
+    TRABAJADORES = TRABAJADORES_ctm,
+    REVISIONES = REVISIONES_ctm,
+    NOMINAL = NOMINAL_ctm
+  )
+
+central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") %>%
+  mutate(fecha = as.Date(fecha), central = "CROC") %>%
+  rename(
+    REAL = REAL_croc,
+    TRABAJADORES = TRABAJADORES_croc,
+    REVISIONES = REVISIONES_croc,
+    NOMINAL = NOMINAL_croc
+  )
+
+central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") %>%
+  mutate(fecha = as.Date(fecha), central = "CROM") %>%
+  rename(
+    REAL = REAL_crom,
+    TRABAJADORES = TRABAJADORES_crom,
+    REVISIONES = REVISIONES_crom,
+    NOMINAL = NOMINAL_crom
+  )
+
+central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_asa") %>%
+  mutate(fecha = as.Date(fecha), central = "SNA y ASA") %>%
+  rename(
+    REAL = REAL_sna_asa,
+    TRABAJADORES = TRABAJADORES_sna_asa,
+    REVISIONES = REVISIONES_sna_asa,
+    NOMINAL = NOMINAL_sna_asa
+  )
+
+central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras") %>%
+  mutate(fecha = as.Date(fecha), central = "OTRAS") %>%
+  rename(
+    REAL = REAL_otras,
+    TRABAJADORES = TRABAJADORES_otras,
+    REVISIONES = REVISIONES_otras,
+    NOMINAL = NOMINAL_otras
+  )
+
+central_ind_ct <- read_excel("excels/negociaciones_central.xlsx", sheet = "ind_ct") %>%
+  mutate(fecha = as.Date(fecha), central = "CT") %>%
+  rename(
+    REAL = REAL_ind_ct,
+    TRABAJADORES = TRABAJADORES_ind_ct,
+    REVISIONES = REVISIONES_ind_ct,
+    NOMINAL = NOMINAL_ind_ct
+  )
+
+
+centrales <- bind_rows(
+  central_ctm,
+  central_croc,
+  central_crom,
+  central_sna_asa,
+  central_ind_ct,
+  central_otras
+)
+
+rm(
+  central_ctm,
+  central_croc,
+  central_crom,
+  central_sna_asa,
+  central_ind_ct,
+  central_otras
+)
+
+centrales <- centrales %>%
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes) %>% 
+  clean_names() %>% 
+  mutate(
+    direc = ifelse(real >= 0, "Positivo", "Negativo")
+  )
+
+etiquetas <- centrales %>%
+  group_by(central, fecha) %>%
+  summarise(
+    x = min(fecha, na.rm = TRUE),
+    etiqueta = paste0(
+      "Promedio: ",
+      round(real,2),
+      "%"
+    ),
+    .groups = "drop"
+  ) |> 
+  filter(
+    fecha == fecha_interes
+  ) 
+
+```
+
+Las centrales obreras con los mayores incrementos fueron
+
+```{r}
+#| out-width: "100%"
+#| dpi: 300
+
+ggplot(centrales) +
+  geom_point(
+    mapping = aes(x = fecha, y = real, color = direc),
+    show.legend = FALSE
+  ) + 
+  geom_line(mapping = aes(x = fecha, y = real),
+            color = "#611232") +
+  geom_bar(
+    mapping = aes(x = fecha, y = real, fill = direc),
+    stat = "identity",
+    alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = c(
+    "Positivo" = "#1e5b4f",
+    "Negativo" = "#611232"
+  )) +
+  scale_color_manual(values = c(
+    "Positivo" = "#1e5b4f",
+    "Negativo" = "#611232"
+  )) + 
+  geom_abline(
+    slope = 0,
+    intercept = 0,
+    color = "black",
+    size = 0.5,
+    linetype = "dotted"
+  ) +
+  geom_text(
+    data = etiquetas,
+    aes(
+      x = x,
+      y = Inf,
+      label = etiqueta
+    ),
+    hjust = 2,
+    vjust = 1.5,
+    size = 2.5,
+    fontface = "bold",
+    inherit.aes = FALSE
+  ) +
+  scale_x_date(date_labels = "%Y",
+                 breaks = seq(as.Date(min(centrales$fecha)),
+                              as.Date(max(centrales$fecha)),
+                              by = "year")) +
+  facet_wrap(~central) +
+  theme_conasami() + 
+  labs(x = "", y = "Variación Salarial Real (%)", color = "") +
+  theme(
+    axis.title.y = element_text(color = "white"),
+    axis.text.y = element_text(color = "white"),
+    axis.ticks = element_line(color = "white"),
+    axis.title.x = element_text(color = "white")
+  )
+
+```
