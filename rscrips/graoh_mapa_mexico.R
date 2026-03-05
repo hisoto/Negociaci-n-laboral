@@ -109,7 +109,7 @@ imaief
 mapa_plot_real <- ggplot(merged_mexico) +
   geom_sf(aes(fill = REAL), color = "black") +
   scale_fill_gradient(low = "#FDE9EF", high = "#611232") +
-  theme_minimal() +
+  theme_void() +
   theme(legend.position = "bottom") +
   labs(title = "", fill = "Variación Salarial Real (%)") +
   guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5)) +

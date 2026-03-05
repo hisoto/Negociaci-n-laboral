@@ -25,20 +25,38 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2017-01-01")
 
-fecha_interes <- as.Date("2025-12-01")
+fecha_interes <- as.Date("2026-01-01")
 
 #_______________________________________________________________________________
 
-emplazamientos <- read_excel("excels/negociaciones_scrapp.xlsx", sheet = "emplazamientos_entidad")
+emplazamientos <- read_excel("excels/5.2.5 Emplazamientos a Huelgas por Entidad Federativa.xlsx", skip = 9) |> 
+  slice(1:483) |> 
+  rename(
+    fecha = 2, 
+    Nacional = 3
+  ) |> 
+  select(-1) |> 
+  filter(fecha != "Total") |> 
+  mutate(
+    across(.cols = -fecha, .fns = as.integer),
+    fecha = paste0(fecha, "-01"),
+    fecha = str_replace(fecha, "/", "-"),
+    fecha = lubridate::parse_date_time(fecha, orders = "Y-b-d") |> lubridate::as_date(),
+    mes = as.integer(lubridate::month(fecha)),
+    year = as.integer(lubridate::year(fecha))
+  ) |> 
+  relocate(fecha, year, mes)
 
 # Convertimos a formato long 
 
 emplazamientos_long <- emplazamientos %>% 
-  rename("Ciudad de México" = 12) %>% 
   pivot_longer(cols = -c(fecha, year, mes), 
                names_to = "entidad", 
                values_to = "emplazamientos") %>% 
-  filter(entidad != "Más de una entidad")
+  filter(
+    entidad != "Más de una entidad" & 
+    entidad != "Nacional"
+)
   
 
 glimpse(emplazamientos_long)
@@ -67,7 +85,7 @@ merged_mexico <- mexico %>%
 mapa_plot_real <- ggplot(merged_mexico) +
   geom_sf(aes(fill = emplazamientos), color = "black") +
   scale_fill_gradient(low = "#FDE9EF", high = "#611232") +
-  theme_minimal() +
+  theme_void() +
   theme(legend.position = "bottom") +
   labs(title = "", fill = "Variación Salarial Real (%)") +
   guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5)) +

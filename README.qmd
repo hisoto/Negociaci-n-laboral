@@ -27,8 +27,6 @@ knitr:
 
 rm(list = ls());gc()
 
-source("rscrips/theme_conasami.R")
-
 pacman::p_load(
   tidyverse,
   dplyr,
@@ -36,8 +34,11 @@ pacman::p_load(
   janitor,
   lubridate,
   rnaturalearth,
-  rnaturalearthhires
+  rnaturalearthhires,
+  extrafont
 )
+
+source("rscrips/theme_conasami.R")
 
 fecha_interes  <- ymd("2026-01-01")
 
@@ -339,19 +340,19 @@ rm(revisiones, barras)
 
 ```{r}
 
-revisiones <- read_excel("excels/negociaciones_stata.xlsx", sheet = "empresas") %>%
-  clean_names() %>% 
+revisiones <- read_excel("excels/negociaciones_stata.xlsx", sheet = "empresas") |>
+  clean_names() |> 
   mutate(fecha = as.Date(fecha)) 
 
-revisiones <- revisiones %>% 
+revisiones <- revisiones |> 
   pivot_longer(
     cols = starts_with("real_")| starts_with("nominal_") | 
       starts_with("revisiones_") | starts_with("trabajadores_"),
     names_to = c("variable", "clase"),
     names_sep = "_"
-  ) %>% 
-  pivot_wider(names_from = variable, values_from = value) %>% 
-  filter(fecha >= fecha_inicio & fecha <= fecha_interes) %>% 
+  ) |> 
+  pivot_wider(names_from = variable, values_from = value) |> 
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes) |> 
   mutate(
     clase = case_when(
       clase == "priv" ~ "Privada",
@@ -408,7 +409,7 @@ ggplot(revisiones) +
                             by = "year")) +
   facet_wrap(~clase) + 
   geom_text(
-    data = revisiones %>% filter(fecha == fecha_interes),
+    data = revisiones |> filter(fecha == fecha_interes),
     mapping = aes(
       x = fecha,
       y = real,
@@ -440,11 +441,11 @@ rm(revisiones)
 
 ```{r}
 
-entidades <- read_excel("excels/negociaciones_stata.xlsx", sheet = "entidad")%>%
+entidades <- read_excel("excels/negociaciones_stata.xlsx", sheet = "entidad")|>
   mutate(fecha = as.Date(fecha))
 
 
-entidades_long <- entidades %>% 
+entidades_long <- entidades |> 
   pivot_longer(cols = -c(fecha, year, mes), 
                names_to = "entidad", 
                values_to = "REAL")
@@ -454,18 +455,18 @@ add_spaces <- function(state_name){
   return(state_name)
 }
 
-entidades_long <- entidades_long %>% 
+entidades_long <- entidades_long |> 
   mutate(entidad = add_spaces(entidad))
 
   # La función únicamente no pudo corregir Ciudadde México, es necesario cambiarlo 
 
-entidades_long <- entidades_long %>%
+entidades_long <- entidades_long |>
   mutate(entidad = str_replace_all(entidad, "Ciudadde México", "Ciudad de México"))
 
     # Vamos a seleccionar los datos del último mes y año.
 
-entidades_long_last <- entidades_long %>% 
-  filter(fecha == fecha_interes) %>% 
+entidades_long_last <- entidades_long |> 
+  filter(fecha == fecha_interes) |> 
   mutate(categoria = case_when(REAL < 0 ~ "Negativa",
                    REAL <= 5 ~ "Hasta 5%",
                    REAL <= 10 ~ "De 5 a 10%",
@@ -479,12 +480,47 @@ mexico$name <- ifelse(mexico$name == "Distrito Federal", "Ciudad de México", me
 # Une los datos de los estados con los datos de los incrementos reales
   # Hacemos un casewhen para 
 
-merged_mexico <- mexico %>%
+merged_mexico <- mexico |>
   left_join(entidades_long_last, by = c("name" = "entidad")) 
 
 colores <- c("Negativa" = "#FDE9EF", "Hasta 5%" = "#c79dad",
              "De 5 a 10%" = "#955870", "Mayor a 10%" = "#621132")
+
+top_5_entidades <- entidades_long_last |>
+  arrange(desc(REAL)) |>
+  slice_head(n = 5)
+
+texto_entidades <- top_5_entidades |>
+  mutate(
+    texto = paste0(entidad, " (", round(REAL, 2), "%)")
+  ) |>
+  pull(texto)
+
+parrafo_entidades <- paste0(
+  paste(texto_entidades[-length(texto_entidades)], collapse = ", "),
+  " y ",
+  texto_entidades[length(texto_entidades)]
+)
+
+bottom_5_entidades <- entidades_long_last |>
+  arrange((REAL)) |>
+  slice_head(n = 5)
+
+bottom_texto_entidades <- bottom_5_entidades |>
+  mutate(
+    texto = paste0(entidad, " (", round(REAL, 2), "%)")
+  ) |>
+  pull(texto)
+
+bottom_parrafo_entidades <- paste0(
+  paste(bottom_texto_entidades[-length(bottom_texto_entidades)], collapse = ", "),
+  " y ",
+  bottom_texto_entidades[length(bottom_texto_entidades)]
+)
+
 ```
+
+Las cinco entidades con los mayores incrementos fueron: `r parrafo_entidades`.
 
 ```{r}
 #| out-width: "100%" 
@@ -507,12 +543,14 @@ ggplot(merged_mexico) +
 
 ```
 
+En cambio, las cinco entidades con los menores incrementos fueron: `r bottom_parrafo_entidades`. 
+
 ```{r}
 #| out-width: "100%"
 #| dpi: 300
 
-entidades_long_last <- entidades_long_last %>%
-  mutate(REAL = replace_na(REAL, 0)) %>%
+entidades_long_last <- entidades_long_last |>
+  mutate(REAL = replace_na(REAL, 0)) |>
   filter(REAL != 0, entidad != "...36")
 
 ggplot(entidades_long_last) +
@@ -555,8 +593,8 @@ rm(entidades_long_last, entidades_long, entides, mexico, merged_mexico)
 ```{r}
 
 
-central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") %>%
-  mutate(fecha = as.Date(fecha), central = "CTM") %>%
+central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") |>
+  mutate(fecha = as.Date(fecha), central = "CTM") |>
   rename(
     REAL = REAL_ctm,
     TRABAJADORES = TRABAJADORES_ctm,
@@ -564,8 +602,8 @@ central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") %>
     NOMINAL = NOMINAL_ctm
   )
 
-central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") %>%
-  mutate(fecha = as.Date(fecha), central = "CROC") %>%
+central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") |>
+  mutate(fecha = as.Date(fecha), central = "CROC") |>
   rename(
     REAL = REAL_croc,
     TRABAJADORES = TRABAJADORES_croc,
@@ -573,8 +611,8 @@ central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") 
     NOMINAL = NOMINAL_croc
   )
 
-central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") %>%
-  mutate(fecha = as.Date(fecha), central = "CROM") %>%
+central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") |>
+  mutate(fecha = as.Date(fecha), central = "CROM") |>
   rename(
     REAL = REAL_crom,
     TRABAJADORES = TRABAJADORES_crom,
@@ -582,8 +620,8 @@ central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") 
     NOMINAL = NOMINAL_crom
   )
 
-central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_asa") %>%
-  mutate(fecha = as.Date(fecha), central = "SNA y ASA") %>%
+central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_asa") |>
+  mutate(fecha = as.Date(fecha), central = "SNA y ASA") |>
   rename(
     REAL = REAL_sna_asa,
     TRABAJADORES = TRABAJADORES_sna_asa,
@@ -591,8 +629,8 @@ central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_
     NOMINAL = NOMINAL_sna_asa
   )
 
-central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras") %>%
-  mutate(fecha = as.Date(fecha), central = "OTRAS") %>%
+central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras") |>
+  mutate(fecha = as.Date(fecha), central = "OTRAS") |>
   rename(
     REAL = REAL_otras,
     TRABAJADORES = TRABAJADORES_otras,
@@ -600,8 +638,8 @@ central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras"
     NOMINAL = NOMINAL_otras
   )
 
-central_ind_ct <- read_excel("excels/negociaciones_central.xlsx", sheet = "ind_ct") %>%
-  mutate(fecha = as.Date(fecha), central = "CT") %>%
+central_ind_ct <- read_excel("excels/negociaciones_central.xlsx", sheet = "ind_ct") |>
+  mutate(fecha = as.Date(fecha), central = "CT") |>
   rename(
     REAL = REAL_ind_ct,
     TRABAJADORES = TRABAJADORES_ind_ct,
@@ -628,15 +666,15 @@ rm(
   central_otras
 )
 
-centrales <- centrales %>%
-  filter(fecha >= fecha_inicio & fecha <= fecha_interes) %>% 
-  clean_names() %>% 
+centrales <- centrales |>
+  filter(fecha >= fecha_inicio & fecha <= fecha_interes) |> 
+  clean_names() |> 
   mutate(
     direc = ifelse(real >= 0, "Positivo", "Negativo")
   )
 
-etiquetas <- centrales %>%
-  group_by(central, fecha) %>%
+etiquetas <- centrales |>
+  group_by(central, fecha) |>
   summarise(
     x = min(fecha, na.rm = TRUE),
     etiqueta = paste0(
@@ -644,15 +682,29 @@ etiquetas <- centrales %>%
       round(real,2),
       "%"
     ),
+    real = real, 
     .groups = "drop"
   ) |> 
   filter(
     fecha == fecha_interes
-  ) 
+  ) |> 
+  arrange(desc(real))
+
+texto_centrales <- etiquetas |>
+  mutate(
+    texto = paste0(central, " (", round(real, 1), "%)")
+  ) |>
+  pull(texto)
+
+parrafo_centrales <- paste0(
+  paste(texto_centrales[-length(texto_centrales)], collapse = ", "),
+  " y ",
+  texto_centrales[length(texto_centrales)]
+)
 
 ```
 
-Las centrales obreras con los mayores incrementos fueron
+Las centrales obreras tuvieron variaciones de: `r parrafo_centrales`. 
 
 ```{r}
 #| out-width: "100%"
@@ -713,4 +765,11 @@ ggplot(centrales) +
     axis.title.x = element_text(color = "white")
   )
 
+rm(centrales, etiquetas, texto_centrales, parrafo_centrales)
+
 ```
+
+## Emplazamientos a huelga por entidad
+
+
+

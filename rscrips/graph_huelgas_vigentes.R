@@ -32,13 +32,12 @@ huelgas_text <- huelgas %>%
 
 
 ggplot(huelgas) + 
-  geom_bar(mapping = aes(x = fecha, y = huelgas, fill = tipo), stat = "identity", position = "dodge") +
+  geom_col(mapping = aes(x = fecha, y = huelgas, fill = tipo), stat = "identity", position = "dodge") +
   geom_text(huelgas_text, mapping = aes(fecha, huelgas, label = scales::label_number(scale = 1)(huelgas), fontface = "bold"),
             position = position_dodge2(width = 300),
             vjust = -0.4, hjust = .7, size = 4.0,
             show.legend = FALSE) +
   theme_conasami() + 
-  #scale_color_manual(values = c("huelgas" = "#a57f2c", "huelgas_vigentes" = "#98989A")) + 
   scale_fill_manual(values = c("huelgas_estalladas" = "#a57f2c", "huelgas_vigentes" = "#98989A"), labels = c("Huelgas estalladas", "Huelgas vigentes")) +
   scale_x_date(date_labels = "%Y", breaks = y_tick) +
   labs(

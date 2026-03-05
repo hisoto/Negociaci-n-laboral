@@ -9,8 +9,8 @@ Nacional de los Salarios Mínimos*
 ## Jurisdicción Federal
 
               used (Mb) gc trigger (Mb) max used (Mb)
-    Ncells  601317 32.2    1367211 73.1   701674 37.5
-    Vcells 1104378  8.5    8388608 64.0  1927574 14.8
+    Ncells  602845 32.2    1371574 73.3   701680 37.5
+    Vcells 1108460  8.5    8388608 64.0  1927043 14.8
 
 En lo que vamos de 2026 se han realizado 235 revisiones salariales en la
 jurisdicción federal, que involucraron a 141,653 personas trabajadoras,
@@ -63,15 +63,26 @@ style="width:100.0%" />
 
 ## Revisiones por entidad
 
+Las cinco entidades con los mayores incrementos fueron: Baja California
+(11.85%), Tabasco (10.02%), Durango (9.85%), Colima (9.53%) y Sonora
+(8.69%).
+
 <img src="README_files/figure-commonmark/unnamed-chunk-9-1.svg"
 style="width:100.0%" />
+
+En cambio, las cinco entidades con los menores incrementos fueron:
+Morelos (1.22%), Tamaulipas (1.25%), Chihuahua (1.99%), Hidalgo (2.05%)
+y Yucatán (2.13%).
 
 <img src="README_files/figure-commonmark/unnamed-chunk-10-1.svg"
 style="width:100.0%" />
 
 ## Revisiones por Central obrera
 
-Las centrales obreras con los mayores incrementos fueron
+Las centrales obreras tuvieron variaciones de: CROM (5.3%), CROC (5.2%),
+CTM (5.1%), CT (2.9%), OTRAS (2.2%) y SNA y ASA (2.1%).
 
 <img src="README_files/figure-commonmark/unnamed-chunk-12-1.svg"
 style="width:100.0%" />
+
+## Emplazamientos a huelga por entidad
