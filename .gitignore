@@ -7,3 +7,26 @@
 /master_negociaciones.R
 /Negociación laboral-MacBook Air de Héctor (2).Rproj
 /Negociación laboral.Rproj
+
+# Tarjetas CIS (confidenciales)
+Tarjetas semanales de Contratación y Conflictividad Colectiva/
+Tarjetas semanales de Contratación y Conflictividad Colectiva.zip
+
+# CSVs generados por extracción de PDFs (confidenciales)
+csvs/
+
+# Artefactos R
+Rplots.pdf
+
+# Claude Code config (privado)
+.claude/
+CLAUDE.md
+
+# Documentos Word huelgas vigentes (confidenciales)
+excels/HUELGAS VIGENTES EN LA JURISDICCIÓN FEDERAL*.docx
+
+# Python cache
+rscrips/__pycache__/
+
+# Scripts legacy (borradores antiguos conservados localmente)
+legacy/
