@@ -109,42 +109,5 @@ ggsave(name_h_2, plot = last_plot(),
 
 #_______________________________________________________________________________
 
-    # Presentación
-
-huelgas_vigentes_p <- ggplot(huelgas) + 
-  geom_bar(mapping = aes(x = fecha, y = huelgas, fill = tipo), stat = "identity", position = "dodge") +
-  geom_text(huelgas_text, mapping = aes(fecha, huelgas, label = scales::label_number(scale = 1)(huelgas), fontface = "bold"),
-            position = position_dodge2(width = 300),
-            vjust = -0.4, hjust = .8, size = 4.0,
-            show.legend = FALSE) +
-  theme_conasami() + 
-  #scale_color_manual(values = c("huelgas" = "#a57f2c", "huelgas_vigentes" = "#98989A")) + 
-  scale_fill_manual(values = c("huelgas" = "#a57f2c", "huelgas_vigentes" = "#98989A"), labels = c("Huelgas", "Huelgas vigentes")) +
-  scale_x_date(date_labels = "%Y", breaks = y_tick) +
-  labs(
-    title = "",
-    subtitle = "",
-    x = "",
-    y = "",
-    fill = "", 
-    color = ""
-  ) + theme(
-    legend.position = "bottom",
-    plot.title = element_text(hjust = 0.5, size = 20),
-    plot.subtitle = element_text(hjust = .5), 
-    axis.title.y = element_text(size = 20),
-    legend.text = element_text(size = 20), 
-    axis.text.x = element_text(angle = 90, hjust = 1, size = 15),
-    axis.text.y = element_text(size=20),
-    panel.background = element_rect(fill='transparent'), 
-    plot.background = element_rect(fill='transparent', color=NA),
-    legend.background = element_rect(fill = "transparent"))
-
-huelgas_vigentes_p 
-
-ggsave("graphs/bar_huelgas/bar_huelgas_p.svg" , plot = last_plot(), 
-       width = 30, height = 15, units = "cm")
-
-
 
 
