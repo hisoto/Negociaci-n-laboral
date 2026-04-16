@@ -24,7 +24,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2017-01-01")
 
-fecha_interes <- as.Date("2026-02-01")
+fecha_interes <- as.Date("2026-03-01")
 
 ruta_externa <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
@@ -180,5 +180,5 @@ print(combined_plot)
 name <- paste0("graphs/entidades/mapa_incremento_", fecha_interes %>% format("%Ym%m"), ".png")
 
 ggsave(name, plot = last_plot(),
-       width = 35, height = 20, units = "cm")
+       width = 35, height = 25, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)

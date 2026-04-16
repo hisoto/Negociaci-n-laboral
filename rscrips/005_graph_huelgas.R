@@ -132,7 +132,7 @@ print(combined_plot)
 name_emp <- paste0("graphs/huelgas/mapa_emplazamientos_", fecha_interes %>% format("%Ym%m"), ".png")
 
 ggsave(name_emp, combined_plot,
-       width = 35, height = 20, units = "cm")
+       width = 35, height = 25, units = "cm")
 file.copy(name_emp, file.path(ruta_externa, "graphs", basename(name_emp)), overwrite = TRUE)
 
 
