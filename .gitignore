@@ -30,3 +30,7 @@ rscrips/__pycache__/
 
 # Scripts legacy (borradores antiguos conservados localmente)
 legacy/
+
+# Catálogos crudos redundantes / sin uso (descargas INEGI)
+catun_municipio.zip
+excels/*.dbf
