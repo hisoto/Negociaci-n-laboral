@@ -21,7 +21,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2021-01-01")
 
-fecha_interes <- as.Date("2026-03-01")
+fecha_interes <- as.Date("2026-04-01")
 
 ruta_externa <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
@@ -192,6 +192,7 @@ ggsave(
   units = "cm"
 )
 file.copy(name_centrales, file.path(ruta_externa, "graphs", basename(name_centrales)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name_centrales), plot = last_plot(), width = 50, height = 25, units = "cm")
 
 # tabla ------------------------------------------------------------------------
 

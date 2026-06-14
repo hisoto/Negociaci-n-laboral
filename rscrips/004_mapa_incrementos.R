@@ -24,7 +24,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2017-01-01")
 
-fecha_interes <- as.Date("2026-03-01")
+fecha_interes <- as.Date("2026-04-01")
 
 ruta_externa <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
@@ -134,6 +134,7 @@ ggsave(
   width = 20, height = 15, units = "cm"
 )
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = mapa_plot_real, width = 20, height = 15, units = "cm")
 
 #_______________________________________________________________________________
 
@@ -165,6 +166,7 @@ name <- paste0("graphs/entidades/bar_incremento_", fecha_interes %>% format("%Ym
 ggsave(name, plot = bar_entidad_real,
        width = 15, height = 20, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = bar_entidad_real, width = 15, height = 20, units = "cm")
 
 #_______________________________________________________________________________
 
@@ -182,3 +184,4 @@ name <- paste0("graphs/entidades/mapa_incremento_", fecha_interes %>% format("%Y
 ggsave(name, plot = last_plot(),
        width = 35, height = 25, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = last_plot(), width = 35, height = 25, units = "cm")

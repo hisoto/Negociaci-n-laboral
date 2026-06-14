@@ -3,7 +3,7 @@ options(scipen = 999)
 source("rscrips/theme_conasami.R")
 pacman::p_load(tidyverse, lubridate)
 
-fecha_interes <- as.Date("2026-03-01")
+fecha_interes <- as.Date("2026-04-01")
 ruta_externa  <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
 # ── Leer datos extraídos de PDFs CIS ─────────────────────────────────────────

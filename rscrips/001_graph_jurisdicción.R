@@ -18,7 +18,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2021-01-01")
 
-fecha_interes <- as.Date("2026-03-01")
+fecha_interes <- as.Date("2026-04-01")
 
 ruta_externa <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
@@ -117,6 +117,7 @@ name <- paste0("graphs/juris/ts_juris_federal_", fecha_interes |> format("%Ym%m"
 ggsave(name, plot = last_plot(),
        width = 50, height = 25, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = last_plot(), width = 50, height = 25, units = "cm")
 
 # Local ________________________________________________________________________
 
@@ -187,6 +188,7 @@ ggsave(
   units = "cm"
 )
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = last_plot(), width = 50, height = 20, units = "cm")
 
 # grafica de barras revisiones y número de trabajadores ------------------------
 
@@ -236,6 +238,7 @@ name <- paste0("graphs/juris/barras_federal_", fecha_interes |> format("%Ym%m"),
 
 ggsave(name, plot = last_plot(), width = 50, height = 15, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = last_plot(), width = 50, height = 15, units = "cm")
 
 # Barras Local _________________________________________________________________
 
@@ -274,6 +277,7 @@ name <- paste0("graphs/juris/barras_local_", fecha_interes |> format("%Ym%m"), "
 
 ggsave(name, plot = last_plot(), width = 50, height = 25, units = "cm")
 file.copy(name, file.path(ruta_externa, "graphs", basename(name)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name), plot = last_plot(), width = 50, height = 25, units = "cm")
 
 # tabla estadistica ------------------------------------------------------------ 
 

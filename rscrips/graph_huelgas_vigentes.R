@@ -4,6 +4,7 @@
 
 #_______________________________________________________________________________
 
+pacman::p_load(tidyverse, lubridate, readxl, janitor)
 
 huelgas_vigentes <- read_excel("excels/negociaciones_stata.xlsx", sheet = "huelgas")
 

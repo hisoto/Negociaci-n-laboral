@@ -18,7 +18,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2021-01-01")
 
-fecha_interes <- as.Date("2026-02-01")
+fecha_interes <- as.Date("2026-04-01")
 
 ruta_externa  <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 

@@ -25,7 +25,7 @@ pacman::p_load(
 
 fecha_inicio <- as.Date("2017-01-01")
 
-fecha_interes <- as.Date("2026-03-01")
+fecha_interes <- as.Date("2026-04-01")
 
 ruta_externa <- "C:/Users/ivan_/OneDrive - Comision Nacional de los Salarios Minimos/proyectosDT/informes/automatizacion"
 
@@ -134,6 +134,7 @@ name_emp <- paste0("graphs/huelgas/mapa_emplazamientos_", fecha_interes %>% form
 ggsave(name_emp, combined_plot,
        width = 35, height = 25, units = "cm")
 file.copy(name_emp, file.path(ruta_externa, "graphs", basename(name_emp)), overwrite = TRUE)
+ggsave(sub("\\.png$", ".svg", name_emp), combined_plot, width = 35, height = 25, units = "cm")
 
 
 
