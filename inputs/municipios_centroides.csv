@@ -1,0 +1,110 @@
+entidad,municipio,lon,lat,cvegeo
+Aguascalientes,Aguascalientes,-102.2916,21.8853,01001
+Baja California,Ensenada,-116.5964,31.8667,02001
+Baja California,Mexicali,-115.4683,32.6519,02002
+Baja California,Tijuana,-117.0382,32.5149,02004
+Baja California Sur,La Paz,-110.3105,24.1425,03003
+Baja California Sur,Los Cabos,-109.9124,23.0545,03008
+Campeche,Campeche,-90.5349,19.8301,04002
+Campeche,Ciudad del Carmen,-91.8333,18.6388,04003
+Chiapas,Ocozocuautla de Espinoza,-93.3756,16.7611,07061
+Chiapas,Tapachula,-92.2575,14.902,07089
+Chiapas,Tuxtla Gutiérrez,-93.1153,16.7536,07101
+Chihuahua,Chihuahua,-106.0889,28.6353,08019
+Chihuahua,Juárez,-106.4815,31.7308,08037
+Ciudad de México,Azcapotzalco,-99.1844,19.4836,09002
+Ciudad de México,Benito Juárez,-99.1565,19.3713,09014
+Ciudad de México,Coyoacán,-99.162,19.3467,09003
+Ciudad de México,Cuauhtémoc,-99.141,19.4326,09015
+Ciudad de México,Gustavo A. Madero,-99.1124,19.4904,09005
+Ciudad de México,Iztapalapa,-99.0617,19.3577,09007
+Ciudad de México,Miguel Hidalgo,-99.2007,19.4267,09016
+Ciudad de México,Tlalpan,-99.1697,19.2933,09012
+Ciudad de México,Venustiano Carranza,-99.0989,19.4419,09017
+Coahuila,Monclova,-101.4214,26.9075,05018
+Coahuila,Saltillo,-101.0053,25.4232,05030
+Coahuila,Sierra Mojada,-103.7,27.2833,05034
+Coahuila,Torreón,-103.4068,25.5428,05035
+Colima,Colima,-103.725,19.2433,06002
+Colima,Manzanillo,-104.3158,19.0522,06007
+Durango,Durango,-104.6532,24.0277,10005
+Durango,Panúco de Coronado,-104.3258,24.5375,10020
+Durango,Tepehuanes,-105.7311,25.3372,10035
+Guanajuato,Celaya,-100.8156,20.523,11007
+Guanajuato,Guanajuato,-101.2574,21.019,11015
+Guanajuato,Irapuato,-101.3494,20.6736,11017
+Guanajuato,León,-101.685,21.125,11020
+Guanajuato,Salamanca,-101.1956,20.575,11027
+Guerrero,Acapulco de Juárez,-99.8237,16.8531,12001
+Guerrero,Chilpancingo de los Bravo,-99.5009,17.5506,12029
+Guerrero,Taxco de Alarcón,-99.6,18.55,12055
+Hidalgo,Pachuca de Soto,-98.7591,20.1011,13048
+Hidalgo,Tecozautla,-99.6333,20.5333,13059
+Hidalgo,Tepeji del Río de Ocampo,-99.3417,19.9,13063
+Hidalgo,Tula de Allende,-99.3431,20.0539,13076
+Jalisco,Guadalajara,-103.3496,20.6597,14039
+Jalisco,Puerto Vallarta,-105.2308,20.6534,14067
+Jalisco,Tlajomulco de Zúñiga,-103.4458,20.4778,14097
+Jalisco,Tlaquepaque,-103.3128,20.6386,14098
+Jalisco,Zapopan,-103.4068,20.7235,14120
+México,Cuautitlán,-99.1789,19.6678,15024
+México,Cuautitlán Izcalli,-99.215,19.6464,15121
+México,Ecatepec de Morelos,-99.0506,19.6011,15033
+México,La Paz,-98.9603,19.3617,15070
+México,Naucalpan de Juárez,-99.2389,19.475,15057
+México,Nezahualcóyotl,-99.014,19.4006,15058
+México,Tianguistenco,-99.4664,19.1864,15101
+México,Tlalnepantla de Baz,-99.1953,19.54,15104
+México,Toluca,-99.6569,19.2926,15106
+México,Tultepec,-99.1308,19.6856,15108
+México,Tultitlán,-99.1689,19.6453,15109
+Michoacán,Lázaro Cárdenas,-102.2017,17.958,16052
+Michoacán,Morelia,-101.1844,19.7008,16053
+Michoacán,Uruapan,-102.0628,19.4203,16102
+Morelos,Cuernavaca,-99.2216,18.9242,17007
+Morelos,Jiutepec,-99.1842,18.9,17011
+Nayarit,Tepic,-104.8945,21.5081,18017
+Nuevo León,Apodaca,-100.1881,25.7817,19006
+Nuevo León,García,-100.5872,25.8136,19018
+Nuevo León,Guadalupe,-100.2562,25.6775,19026
+Nuevo León,Monterrey,-100.3161,25.6866,19039
+Nuevo León,San Nicolás de los Garza,-100.3,25.7417,19046
+Nuevo León,Santa Catarina,-100.4583,25.6736,19048
+Oaxaca,Oaxaca de Juárez,-96.7266,17.0732,20067
+Oaxaca,Salina Cruz,-95.1949,16.1655,20079
+Puebla,Coxcatlán,-97.1456,18.2625,21035
+Puebla,Puebla,-98.2063,19.0414,21114
+Puebla,San Martín Texmelucan,-98.4392,19.2828,21132
+Puebla,Tehuacán,-97.3928,18.4625,21156
+Querétaro,Querétaro,-100.3899,20.5888,22014
+Querétaro,San Juan del Río,-100.0153,20.3886,22016
+Quintana Roo,Benito Juárez,-86.8515,21.1619,23005
+Quintana Roo,Cancún,-86.8515,21.1619,23005
+Quintana Roo,Cozumel,-86.9458,20.5085,23001
+Quintana Roo,Solidaridad,-87.0739,20.6296,23008
+San Luis Potosí,San Luis Potosí,-100.9855,22.1565,24028
+Sinaloa,Culiacán,-107.394,24.8091,25006
+Sinaloa,Mazatlán,-106.4111,23.2494,25012
+Sonora,Cajeme,-110.0407,27.4847,26018
+Sonora,Hermosillo,-110.9613,29.0892,26030
+Sonora,Navojoa,-109.4453,27.0728,26042
+Sonora,Nogales,-110.9417,31.3072,26043
+Sonora,San Luis Río Colorado,-114.7728,32.4536,26055
+Tabasco,Villahermosa,-92.9475,17.9892,27004
+Tamaulipas,Altamira,-97.8753,22.3964,28003
+Tamaulipas,Matamoros,-97.5039,25.8694,28022
+Tamaulipas,Nuevo Laredo,-99.5075,27.5036,28027
+Tamaulipas,Reynosa,-98.2772,26.0922,28032
+Tamaulipas,Tampico,-97.8686,22.2553,28038
+Tlaxcala,Tlaxcala,-98.24,19.3139,29033
+Veracruz,Coatzacoalcos,-94.4598,18.1389,30039
+Veracruz,Córdoba,-96.9347,18.8836,30044
+Veracruz,Orizaba,-97.0992,18.8511,30118
+Veracruz,Poza Rica de Hidalgo,-97.4592,20.5331,30131
+Veracruz,Veracruz,-96.1342,19.1738,30193
+Veracruz,Xalapa,-96.9103,19.532,30087
+Yucatán,Mérida,-89.5926,20.9674,31050
+Zacatecas,Chalchihuites,-103.8847,23.4769,32009
+Zacatecas,Fresnillo,-102.8667,23.1742,32010
+Zacatecas,Sombrerete,-103.6453,23.6306,32042
+Zacatecas,Zacatecas,-102.5833,22.7708,32056
