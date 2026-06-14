@@ -65,7 +65,7 @@ C3_COLS = [
     "bono_forma_pago", "bono_meta",
 ]
 C4_COLS = [
-    "fecha_reporte", "version_formato", "empresa", "entidad",
+    "fecha_reporte", "version_formato", "empresa", "entidad", "municipio",
     "sindicato", "propiedad", "rama", "central", "causa",
     "instancia", "fecha_inicio", "duracion_dias", "trabajadores",
 ]
@@ -504,143 +504,236 @@ def _classify_causa(causa_text: str) -> str:
     return causa_text.strip()
 
 
-# Límites X de las columnas del Cuadro 4 (determinados empíricamente
-# a partir del header de los PDFs CIS — layout constante generado por STPS).
-_C4_COL_BOUNDS = {
-    "empresa":       (18, 96),
-    "entidad":       (96, 198),
-    "sindicato":     (198, 286),
-    "propiedad":     (286, 328),
-    "rama":          (328, 366),
-    "central":       (366, 393),
-    "causa":         (393, 434),
-    "instancia":     (434, 473),
-    "fecha_inicio":  (473, 515),
-    "duracion_dias": (515, 545),
-    "trabajadores":  (545, 612),
+# Bounds X por defecto (fallback si la detección dinámica falla).
+# El orden de las columnas en el PDF es:
+# empresa | entidad+municipio | sindicato | propiedad | rama | central |
+# causa | instancia | fecha_inicio | duracion_dias | trabajadores
+_C4_COL_NAMES = [
+    "empresa", "entidad_municipio", "sindicato", "propiedad", "rama",
+    "central", "causa", "instancia", "fecha_inicio", "duracion_dias",
+    "trabajadores",
+]
+_C4_COL_BOUNDS_FALLBACK = {
+    "empresa":           (18, 96),
+    "entidad_municipio": (96, 198),
+    "sindicato":         (198, 286),
+    "propiedad":         (286, 328),
+    "rama":              (328, 366),
+    "central":           (366, 393),
+    "causa":             (393, 434),
+    "instancia":         (434, 473),
+    "fecha_inicio":      (473, 515),
+    "duracion_dias":     (515, 545),
+    "trabajadores":      (545, 612),
 }
 
 _DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{4}$")
+_MULTI_ENT_RE = re.compile(r"^m[áa]s\s+de\s+una\s+entidad", re.IGNORECASE)
+
+
+def _split_entidad_municipio(raw: str) -> tuple[str, str]:
+    """
+    Separa el texto crudo de la celda 'Entidad Federativa y Municipio' del PDF
+    en dos campos: entidad y municipio.
+
+    Casos:
+      "Tamaulipas, Matamoros"               → ("Tamaulipas", "Matamoros")
+      "Más de una entidad, Cuauhtémoc"      → ("Más de una entidad", "Cuauhtémoc")
+      "Más de una entidad"                  → ("Más de una entidad", "")
+      "Baja California, Sierra Mojada"      → ("Baja California", "Sierra Mojada")
+      "Coahuila"                            → ("Coahuila", "")
+    """
+    s = " ".join((raw or "").split()).strip().strip(",").strip()
+    if not s:
+        return "", ""
+    if _MULTI_ENT_RE.match(s):
+        rest = _MULTI_ENT_RE.sub("", s, count=1).lstrip(", ").strip()
+        return "Más de una entidad", rest
+    parts = s.split(",", 1)
+    if len(parts) == 1:
+        return parts[0].strip(), ""
+    return parts[0].strip(), parts[1].strip()
+
+
+def _detect_c4_layout(page) -> "tuple[tuple, dict] | None":
+    """
+    Detecta el área tabular del Cuadro 4 en una página y los cortes X de columnas.
+
+    `find_tables` suele devolver muchas mini-tablas (una por fila visual del
+    PDF). Se toman las filas con 11 celdas (firma del Cuadro 4), se promedian
+    sus bounds X para tener cortes robustos, y se une el bbox vertical de
+    todas las mini-tablas para cubrir el área completa.
+
+    Devuelve (bbox, col_bounds) o None si no se detecta el Cuadro 4.
+    """
+    try:
+        tables = page.find_tables(SETTINGS_LINES) or []
+    except Exception:
+        tables = []
+
+    eleven_cell_rows = []  # filas con 11 celdas
+    bboxes = []            # bboxes de las tablas que contienen al menos una fila de 11
+
+    for tbl in tables:
+        has_eleven = False
+        for r in tbl.rows:
+            cells = [c for c in r.cells if c is not None]
+            if len(cells) == 11:
+                eleven_cell_rows.append(cells)
+                has_eleven = True
+        if has_eleven:
+            bboxes.append(tbl.bbox)
+
+    if not eleven_cell_rows or not bboxes:
+        return None
+
+    # Promediar cortes X de las filas de 11 celdas (más robusto que tomar una sola)
+    col_bounds: dict[str, tuple[float, float]] = {}
+    for i, name in enumerate(_C4_COL_NAMES):
+        x0s = [row[i][0] for row in eleven_cell_rows]
+        x1s = [row[i][2] for row in eleven_cell_rows]
+        col_bounds[name] = (sum(x0s) / len(x0s), sum(x1s) / len(x1s))
+
+    x0 = min(b[0] for b in bboxes)
+    top = min(b[1] for b in bboxes)
+    x1 = max(b[2] for b in bboxes)
+    bottom = max(b[3] for b in bboxes)
+    return (x0, top, x1, bottom), col_bounds
 
 
 def _extract_cuadro4_by_words(pages: list, fecha: date, filename: str) -> pd.DataFrame:
     """
     Extrae Cuadro 4 usando posiciones de palabras (word-level extraction).
 
-    Cada registro de huelga tiene exactamente una fecha_inicio (DD/MM/YYYY)
-    en la columna correspondiente (~x0=475). Se usa como ancla para delimitar
-    bandas verticales por registro y asignar palabras a columnas por x-position.
+    Procesa cada página independientemente: detecta la región tabular y los
+    cortes de columna con `page.find_tables()`, filtra palabras a la región
+    detectada (excluye logo/título/pie de página/notas), y usa las fechas
+    DD/MM/YYYY de la columna fecha_inicio como ancla para delimitar bandas
+    por registro. La fila de encabezado (etiquetas "Empresa", "Sindicato"…)
+    se excluye automáticamente porque queda arriba del primer ancla de fecha.
     """
     ver = detect_version_formato(fecha)
     fecha_s = fecha.isoformat()
 
-    # Recolectar todas las palabras con posiciones de todas las páginas
-    all_words = []
-    page_offsets = []  # y-offset acumulado para concatenar páginas verticalmente
-    y_offset = 0.0
+    records: list[dict] = []
 
     for page in pages:
+        layout = _detect_c4_layout(page)
+        if layout is None:
+            col_bounds = dict(_C4_COL_BOUNDS_FALLBACK)
+        else:
+            _bbox, col_bounds = layout
+
         try:
             words = page.extract_words()
         except Exception:
             words = []
-        for w in words:
-            all_words.append({
-                "text": w["text"],
-                "x0":   w["x0"],
-                "top":  w["top"] + y_offset,
+        if not words:
+            continue
+
+        fecha_lo, fecha_hi = col_bounds["fecha_inicio"]
+        date_anchors = sorted(
+            [w for w in words
+             if fecha_lo <= w["x0"] < fecha_hi
+             and _DATE_RE.match(w["text"].strip())],
+            key=lambda w: w["top"],
+        )
+        if not date_anchors:
+            continue
+
+        # Pitch típico entre filas (mediana). Solo se usa como fallback para
+        # los casos con un solo registro. En general, se usa el pitch local.
+        if len(date_anchors) >= 2:
+            diffs = sorted(date_anchors[i + 1]["top"] - date_anchors[i]["top"]
+                           for i in range(len(date_anchors) - 1))
+            median_pitch = diffs[len(diffs) // 2]
+        else:
+            median_pitch = 40.0
+
+        # Piso absoluto: el encabezado de página (logo + título repetido)
+        # ocupa los primeros ~40pt. Cualquier dato real está abajo de eso.
+        HEADER_SAFE_Y = 40.0
+
+        for idx, anchor in enumerate(date_anchors):
+            y_date = anchor["top"]
+            # Banda superior:
+            #   - registros intermedios: punto medio con el ancla previa
+            #   - PRIMER registro: 45% del pitch al siguiente (captura wrap
+            #     de sindicato/empresa arriba del ancla) con piso en
+            #     HEADER_SAFE_Y para excluir encabezado de página
+            if idx > 0:
+                y_top = (date_anchors[idx - 1]["top"] + y_date) / 2
+            else:
+                next_pitch = (date_anchors[1]["top"] - y_date
+                              if len(date_anchors) > 1 else median_pitch)
+                y_top = max(HEADER_SAFE_Y, y_date - next_pitch * 0.45)
+            # Banda inferior:
+            #   - registros intermedios: punto medio con el ancla siguiente
+            #   - ÚLTIMO registro: 50% del pitch al anterior abajo del ancla
+            if idx < len(date_anchors) - 1:
+                y_bot = (y_date + date_anchors[idx + 1]["top"]) / 2
+            else:
+                prev_pitch = (y_date - date_anchors[-2]["top"]
+                              if len(date_anchors) > 1 else median_pitch)
+                y_bot = y_date + prev_pitch * 0.5
+
+            band_words = [w for w in words if y_top <= w["top"] <= y_bot]
+
+            def col_text(col_name: str) -> str:
+                lo, hi = col_bounds[col_name]
+                col_words = sorted(
+                    [w for w in band_words if lo <= w["x0"] < hi],
+                    key=lambda w: (w["top"], w["x0"]),
+                )
+                return " ".join(w["text"].strip() for w in col_words).strip()
+
+            def col_text_near(col_name: str, tol: float = 5.0) -> str:
+                lo, hi = col_bounds[col_name]
+                col_words = sorted(
+                    [w for w in words
+                     if lo <= w["x0"] < hi and abs(w["top"] - y_date) < tol],
+                    key=lambda w: (w["top"], w["x0"]),
+                )
+                return " ".join(w["text"].strip() for w in col_words).strip()
+
+            empresa_raw           = col_text("empresa")
+            entidad_municipio_raw = col_text("entidad_municipio")
+            sindicato_raw         = col_text("sindicato")
+            propiedad_raw         = col_text("propiedad")
+            rama_raw              = col_text("rama")
+            central_raw           = col_text("central")
+            causa_raw             = col_text("causa")
+            instancia_raw         = col_text_near("instancia")
+            fecha_inicio          = anchor["text"].strip()
+            duracion_raw          = col_text_near("duracion_dias")
+            trabajadores_raw      = col_text_near("trabajadores")
+
+            for inst in ["CFCRL-TLFAC", "JFCA"]:
+                causa_raw = causa_raw.replace(inst, "")
+
+            causa_clean = _classify_causa(causa_raw)
+            entidad, municipio = _split_entidad_municipio(entidad_municipio_raw)
+
+            records.append({
+                "fecha_reporte":   fecha_s,
+                "version_formato": ver,
+                "empresa":         " ".join(empresa_raw.split()).strip(),
+                "entidad":         entidad,
+                "municipio":       municipio,
+                "sindicato":       " ".join(sindicato_raw.split()).strip(),
+                "propiedad":       " ".join(propiedad_raw.split()).strip(),
+                "rama":            " ".join(rama_raw.split()).strip(),
+                "central":         " ".join(central_raw.split()).strip(),
+                "causa":           causa_clean,
+                "instancia":       instancia_raw,
+                "fecha_inicio":    fecha_inicio,
+                "duracion_dias":   duracion_raw.replace(",", ""),
+                "trabajadores":    trabajadores_raw.replace(",", "").rstrip("*"),
             })
-        y_offset += page.height + 10  # 10pt gap entre páginas
-        page_offsets.append(y_offset)
 
-    if not all_words:
-        logger.info("%s | cuadro4 | sin palabras extraídas", filename)
+    if not records:
+        logger.info("%s | cuadro4 | sin registros extraídos por word-position", filename)
         return _empty_df(C4_COLS)
-
-    # Encontrar todas las fechas (anclas) en la columna fecha_inicio
-    fecha_col = _C4_COL_BOUNDS["fecha_inicio"]
-    date_anchors = sorted(
-        [w for w in all_words
-         if fecha_col[0] <= w["x0"] < fecha_col[1]
-         and _DATE_RE.match(w["text"].strip())],
-        key=lambda w: w["top"],
-    )
-
-    if not date_anchors:
-        logger.info("%s | cuadro4 | sin fechas detectadas por palabras", filename)
-        return _empty_df(C4_COLS)
-
-    # Definir bandas verticales por registro
-    records = []
-    for idx, anchor in enumerate(date_anchors):
-        y_date = anchor["top"]
-        # Banda: desde el punto medio con el ancla anterior hasta el punto medio con la siguiente
-        y_top = (date_anchors[idx - 1]["top"] + y_date) / 2 if idx > 0 else 0
-        y_bot = (y_date + date_anchors[idx + 1]["top"]) / 2 if idx < len(date_anchors) - 1 else y_offset
-
-        # Recolectar palabras por columna dentro de la banda
-        band_words = [w for w in all_words if y_top <= w["top"] <= y_bot]
-
-        def col_text(col_name: str) -> str:
-            lo, hi = _C4_COL_BOUNDS[col_name]
-            col_words = sorted(
-                [w for w in band_words if lo <= w["x0"] < hi],
-                key=lambda w: (w["top"], w["x0"]),
-            )
-            return " ".join(w["text"].strip() for w in col_words).strip()
-
-        # fecha_inicio, duracion_dias, trabajadores: tomar solo palabras cerca del ancla
-        def col_text_near(col_name: str, tol: float = 5.0) -> str:
-            lo, hi = _C4_COL_BOUNDS[col_name]
-            col_words = [w for w in all_words
-                         if lo <= w["x0"] < hi and abs(w["top"] - y_date) < tol]
-            return " ".join(w["text"].strip() for w in col_words).strip()
-
-        # Extraer campos
-        empresa_raw    = col_text("empresa")
-        entidad_raw    = col_text("entidad")
-        sindicato_raw  = col_text("sindicato")
-        propiedad_raw  = col_text("propiedad")
-        rama_raw       = col_text("rama")
-        central_raw    = col_text("central")
-        causa_raw      = col_text("causa")
-        instancia_raw  = col_text_near("instancia")
-        fecha_inicio   = anchor["text"].strip()
-        duracion_raw   = col_text_near("duracion_dias")
-        trabajadores_raw = col_text_near("trabajadores")
-
-        # Limpiar: remover texto de headers/footers que se filtra en la banda
-        for noise in ["TRABAJO", "(DGIET)", "(DECC)", "INDICADORES", "DIRECCI",
-                       "CONTRATACI", "CONFLICTIVIDAD", "Empresa", "Sindicato",
-                       "Propiedad", "En el siguiente", "cuadro se presentan",
-                       "FUENTE", "NOTA", "cifras preliminares"]:
-            empresa_raw   = empresa_raw.replace(noise, "")
-            entidad_raw   = entidad_raw.replace(noise, "")
-            sindicato_raw = sindicato_raw.replace(noise, "")
-            causa_raw     = causa_raw.replace(noise, "")
-
-        # Remover instancia del texto de causa (a veces se filtra)
-        for inst in ["CFCRL-TLFAC", "JFCA"]:
-            causa_raw = causa_raw.replace(inst, "")
-
-        causa_clean = _classify_causa(causa_raw)
-
-        rec = {
-            "fecha_reporte":   fecha_s,
-            "version_formato": ver,
-            "empresa":         " ".join(empresa_raw.split()).strip(),
-            "entidad":         " ".join(entidad_raw.split()).strip(),
-            "sindicato":       " ".join(sindicato_raw.split()).strip(),
-            "propiedad":       " ".join(propiedad_raw.split()).strip(),
-            "rama":            " ".join(rama_raw.split()).strip(),
-            "central":         " ".join(central_raw.split()).strip(),
-            "causa":           causa_clean,
-            "instancia":       instancia_raw,
-            "fecha_inicio":    fecha_inicio,
-            "duracion_dias":   duracion_raw.replace(",", ""),
-            "trabajadores":    trabajadores_raw.replace(",", "").rstrip("*"),
-        }
-        records.append(rec)
 
     logger.info("%s | cuadro4 | %d registros extraídos por word-position", filename, len(records))
     return pd.DataFrame(records, columns=C4_COLS)
@@ -692,13 +785,15 @@ def normalize_cuadro4(raw_rows: list[list], fecha: date, filename: str,
 
         def get(i): return row[i].strip() if i < len(row) else ""
 
+        entidad, municipio = _split_entidad_municipio(get(1))
         n = len(row)
         if n >= 11:
             rec = {
                 "fecha_reporte":   fecha_s,
                 "version_formato": ver,
                 "empresa":         get(0),
-                "entidad":         get(1),
+                "entidad":         entidad,
+                "municipio":       municipio,
                 "sindicato":       get(2),
                 "propiedad":       get(3),
                 "rama":            get(4),
@@ -714,7 +809,8 @@ def normalize_cuadro4(raw_rows: list[list], fecha: date, filename: str,
                 "fecha_reporte":   fecha_s,
                 "version_formato": ver,
                 "empresa":         get(0),
-                "entidad":         get(1),
+                "entidad":         entidad,
+                "municipio":       municipio,
                 "sindicato":       get(2),
                 "propiedad":       get(3),
                 "rama":            get(4),
