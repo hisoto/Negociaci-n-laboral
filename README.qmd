@@ -38,15 +38,15 @@ pacman::p_load(
   extrafont
 )
 
-source("rscrips/theme_conasami.R")
+source(here::here("scripts", "000_config.R"))
 
-fecha_interes  <- ymd("2026-01-01")
+fecha_interes  <- ymd("2026-05-01")
 
 fecha_inicio <- ymd("2021-01-01")
 
 # Datos ------------------------------------------------------------------------
 
-federal <- read_excel("excels/negociaciones_stata.xlsx", sheet = "j_federal") |>
+federal <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_stata.xlsx"), sheet = "j_federal") |>
   clean_names() |>
   mutate(
     fecha = as.Date(fecha),
@@ -54,7 +54,7 @@ federal <- read_excel("excels/negociaciones_stata.xlsx", sheet = "j_federal") |>
   ) |>
   filter(fecha >= fecha_inicio & fecha <= fecha_interes)
 
-local <- read_excel("excels/negociaciones_stata.xlsx", sheet = "j_local") |>
+local <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_stata.xlsx"), sheet = "j_local") |>
   clean_names() |>
   mutate(
     fecha = as.Date(fecha),
@@ -340,7 +340,7 @@ rm(revisiones, barras)
 
 ```{r}
 
-revisiones <- read_excel("excels/negociaciones_stata.xlsx", sheet = "empresas") |>
+revisiones <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_stata.xlsx"), sheet = "empresas") |>
   clean_names() |> 
   mutate(fecha = as.Date(fecha)) 
 
@@ -441,7 +441,7 @@ rm(revisiones)
 
 ```{r}
 
-entidades <- read_excel("excels/negociaciones_stata.xlsx", sheet = "entidad")|>
+entidades <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_stata.xlsx"), sheet = "entidad")|>
   mutate(fecha = as.Date(fecha))
 
 
@@ -593,7 +593,7 @@ rm(entidades_long_last, entidades_long, entides, mexico, merged_mexico)
 ```{r}
 
 
-central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") |>
+central_ctm <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "ctm") |>
   mutate(fecha = as.Date(fecha), central = "CTM") |>
   rename(
     REAL = REAL_ctm,
@@ -602,7 +602,7 @@ central_ctm <- read_excel("excels/negociaciones_central.xlsx", sheet = "ctm") |>
     NOMINAL = NOMINAL_ctm
   )
 
-central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") |>
+central_croc <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "croc") |>
   mutate(fecha = as.Date(fecha), central = "CROC") |>
   rename(
     REAL = REAL_croc,
@@ -611,7 +611,7 @@ central_croc <- read_excel("excels/negociaciones_central.xlsx", sheet = "croc") 
     NOMINAL = NOMINAL_croc
   )
 
-central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") |>
+central_crom <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "crom") |>
   mutate(fecha = as.Date(fecha), central = "CROM") |>
   rename(
     REAL = REAL_crom,
@@ -620,7 +620,7 @@ central_crom <- read_excel("excels/negociaciones_central.xlsx", sheet = "crom") 
     NOMINAL = NOMINAL_crom
   )
 
-central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_asa") |>
+central_sna_asa <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "sna_asa") |>
   mutate(fecha = as.Date(fecha), central = "SNA y ASA") |>
   rename(
     REAL = REAL_sna_asa,
@@ -629,7 +629,7 @@ central_sna_asa <- read_excel("excels/negociaciones_central.xlsx", sheet = "sna_
     NOMINAL = NOMINAL_sna_asa
   )
 
-central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras") |>
+central_otras <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "otras") |>
   mutate(fecha = as.Date(fecha), central = "OTRAS") |>
   rename(
     REAL = REAL_otras,
@@ -638,7 +638,7 @@ central_otras <- read_excel("excels/negociaciones_central.xlsx", sheet = "otras"
     NOMINAL = NOMINAL_otras
   )
 
-central_ind_ct <- read_excel("excels/negociaciones_central.xlsx", sheet = "ind_ct") |>
+central_ind_ct <- read_excel(here::here("inputs", "stps_poligonos", "negociaciones_central.xlsx"), sheet = "ind_ct") |>
   mutate(fecha = as.Date(fecha), central = "CT") |>
   rename(
     REAL = REAL_ind_ct,

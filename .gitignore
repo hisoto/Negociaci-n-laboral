@@ -1,36 +1,33 @@
+# ── Artefactos de R / RStudio ────────────────────────────────────────────────
+.Rhistory
+.RData
+.Rproj.user/
+Rplots.pdf
 /-MacBook Air de Héctor (2).Rhistory
-/.RData
-/.Rhistory
-/.Rproj.user
-/informe_negociaciones
 /master_negociaciones-MacBook Air de Héctor (2).R
 /master_negociaciones.R
 /Negociación laboral-MacBook Air de Héctor (2).Rproj
-/Negociación laboral.Rproj
 
-# Tarjetas CIS (confidenciales)
-Tarjetas semanales de Contratación y Conflictividad Colectiva/
-Tarjetas semanales de Contratación y Conflictividad Colectiva.zip
-
-# CSVs generados por extracción de PDFs (confidenciales)
-csvs/
-
-# Artefactos R
-Rplots.pdf
-
-# Claude Code config (privado)
+# ── Claude Code config (privado) ─────────────────────────────────────────────
 .claude/
 CLAUDE.md
 
-# Documentos Word huelgas vigentes (confidenciales)
-excels/HUELGAS VIGENTES EN LA JURISDICCIÓN FEDERAL*.docx
+# ── Python cache ─────────────────────────────────────────────────────────────
+scripts/__pycache__/
 
-# Python cache
-rscrips/__pycache__/
+# ── Insumos confidenciales ───────────────────────────────────────────────────
+# Tarjetas semanales CIS (PDFs de la STPS) y los CSVs derivados de su extracción
+inputs/cis_pdf/
+inputs/cis_csv/
+# Documentos Word de huelgas vigentes que envía la DT
+inputs/word_huelgas_vigentes/
+# Catálogo INEGI crudo (se descarga, no se edita)
+inputs/catalogos/*.dbf
 
-# Scripts legacy (borradores antiguos conservados localmente)
-legacy/
-
-# Catálogos crudos redundantes / sin uso (descargas INEGI)
-catun_municipio.zip
-excels/*.dbf
+# ── Entregables y material archivado ─────────────────────────────────────────
+# Informes finales en Word/PDF
+outputs/
+# Material heredado, borradores viejos y respaldos: se conservan en disco,
+# no en el repositorio
+_archivo/
+graphs/_archivo/
