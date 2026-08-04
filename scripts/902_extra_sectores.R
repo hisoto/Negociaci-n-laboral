@@ -1,7 +1,16 @@
 #_______________________________________________________________________________
 
-# Objetivo: Hacer gráficas de revisiones salariales jurisdicción federal
-
+# Objetivo: Ranking de incrementos reales por sector de actividad (SCIAN)
+#
+# EXTRA (prefijo 9xx): no forma parte del informe mensual de la DT — el informe
+# lleva la TABLA de sectores (011_tabla_sectores.R), no esta gráfica. Lo corre
+# Master_negociaciones.R (flujo local completo), NO
+# Master_informe_negociaciones.R, y no viaja en la copia de la carpeta
+# compartida. Sigue escribiendo en graphs/10_sectores/ para no partir el
+# histórico.
+#
+# Ojo: lee incrementos_sector.xlsx (serie mensual por sector), que es un insumo
+# distinto del SCIAN del mes que consume 011.
 #_______________________________________________________________________________
 
 rm(list = ls());gc()

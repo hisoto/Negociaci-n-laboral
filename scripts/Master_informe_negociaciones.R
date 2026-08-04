@@ -1,23 +1,20 @@
 #_______________________________________________________________________________
 #
-# Master_negociaciones.R — Orquestador del flujo LOCAL COMPLETO
+# Master_informe_negociaciones.R — Solo lo que va al informe mensual
 #
-#   Corre todo el pipeline mensual desde un solo lugar: extracción de tarjetas
-#   CIS (opcional) → preflight de insumos → las gráficas y tablas del informe →
-#   el material complementario (9xx_extra_*).
+#   Genera las 15 gráficas y las 2 tablas de la sección "Negociaciones
+#   contractuales" del informe de la Dirección Técnica, y nada más.
+#
+#   Es el master que corre la copia de la carpeta compartida de la DT. La
+#   diferencia con Master_negociaciones.R es que este NO ejecuta los scripts
+#   9xx_extra_*, que producen material complementario fuera del informe
+#   (mapa de huelgas vigentes, MIR, ranking de sectores).
 #
 #   Uso: editar el mes de interés abajo y ejecutar este archivo.
 #
-#     Rscript scripts/Master_negociaciones.R
-#     # o, desde Positron:  source(here::here("scripts", "Master_negociaciones.R"))
-#
-#   El único parámetro que cambia cada mes es anio_interes / mes_interes; se
-#   propaga a todos los scripts vía 000_config.R.
-#
-#   ¿Cuál master usar?
-#     · Master_negociaciones.R          → todo (este). Es el de trabajo diario.
-#     · Master_informe_negociaciones.R  → solo lo que va al informe. Es el que
-#                                         corre la copia de la carpeta de la DT.
+#     Rscript scripts/Master_informe_negociaciones.R
+#     # o, desde Positron:
+#     #   source(here::here("scripts", "Master_informe_negociaciones.R"))
 #
 # Autor: Héctor Iván Soto Parra
 # Área:  Coordinación para el Análisis de la Economía Laboral (CAEL), CONASAMI
@@ -33,12 +30,9 @@ anio_interes <- 2026L
 mes_interes  <- 6L                  # 1 = enero, ..., 12 = diciembre
 
 correr_extraccion <- FALSE          # TRUE = reextraer las tarjetas CIS nuevas
-                                    # antes de graficar (pasos 007, 013 y 900).
+                                    # antes de graficar (pasos 007 y 013).
 
 # ── configuración central ─────────────────────────────────────────────────────
-# Publica fecha_interes, las fechas de inicio por familia y las rutas de insumos
-# en options("negociaciones"). Todos los pasos leen de ahí, y como options()
-# sobrevive a rm(list = ls()), cada script conserva su limpieza inicial.
 
 if (!requireNamespace("here", quietly = TRUE)) install.packages("here")
 source(here::here("scripts", "000_config.R"))
@@ -58,22 +52,19 @@ if (correr_extraccion) {
           "    python scripts/001_extraccion_pdf_cis.py --incremental")
 }
 
-# ── pasos ─────────────────────────────────────────────────────────────────────
-# 002–013 son los productos del informe; 9xx_extra_* es material complementario
-# que no aparece en el informe mensual y no viaja a la carpeta de la DT.
+# ── pasos del informe ─────────────────────────────────────────────────────────
+# Los 9xx_extra_* NO van aquí a propósito: ver Master_negociaciones.R para el
+# flujo local completo.
 
 pasos <- c(
-  "002_graph_jurisdiccion.R",
-  "003_graph_central.R",
-  "004_graph_tipo_empresa.R",
-  "005_mapa_incrementos.R",
-  "006_graph_emplazamientos.R",
-  "007_graph_huelgas.R",
-  "011_tabla_sectores.R",
-  "013_tabla_huelgas_vigentes.R",
-  "900_extra_mapa_huelgas_vigentes.R",
-  "901_extra_mir.R",
-  "902_extra_sectores.R"
+  "002_graph_jurisdiccion.R",       # ts_juris_{federal,local} · barras_*_{federal,local}
+  "003_graph_central.R",            # ts_centrales
+  "004_graph_tipo_empresa.R",       # empresas
+  "005_mapa_incrementos.R",         # mapa_incremento (+ mapa_solo_ y bar_)
+  "006_graph_emplazamientos.R",     # mapa_emplazamientos (+ mapa_solo_)
+  "007_graph_huelgas.R",            # bar_huelgas · bar_huelgas_causa
+  "011_tabla_sectores.R",           # tabla SCIAN del mes
+  "013_tabla_huelgas_vigentes.R"    # tabla del anexo estadístico
 )
 
 source(here::here("scripts", "_correr_pasos.R"))

@@ -7,6 +7,13 @@
 #   - Tamaño del punto = trabajadores
 #   - Color del punto  = causa
 #   - Etiqueta         = N. central obrera · trabajadores  (N por fecha_inicio asc)
+#
+# EXTRA (prefijo 9xx): no forma parte del informe mensual de la DT — el informe
+# lleva la TABLA del anexo (013_tabla_huelgas_vigentes.R), no este mapa. Lo corre
+# Master_negociaciones.R (flujo local completo), NO
+# Master_informe_negociaciones.R, y no viaja en la copia de la carpeta
+# compartida. Sigue escribiendo en graphs/08_huelgas_vigentes/ para no partir el
+# histórico.
 #_______________________________________________________________________________
 
 rm(list = ls()); gc()

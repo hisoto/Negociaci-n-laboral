@@ -59,6 +59,13 @@ source(here::here("scripts", "theme_conasami_dt2026.R"))
 # El mes canónico se edita en Master_negociaciones.R. Estos defaults solo aplican
 # cuando se corre un script suelto sin pasar antes por el Master.
 
+
+# Un orquestador global (Master_CAEL_informe.R, en la raíz de CAEL) fija el mes
+# para los cuatro proyectos del informe con estas variables de entorno. Tienen
+# prioridad sobre lo escrito en el master: si están, es que alguien está corriendo
+# los cuatro proyectos juntos y el periodo debe ser el mismo en todos.
+if (nzchar(Sys.getenv("CNSM_ANIO"))) anio_interes <- as.integer(Sys.getenv("CNSM_ANIO"))
+if (nzchar(Sys.getenv("CNSM_MES")))  mes_interes  <- as.integer(Sys.getenv("CNSM_MES"))
 if (!exists("anio_interes")) anio_interes <- 2026L
 if (!exists("mes_interes"))  mes_interes  <- 6L
 
@@ -74,18 +81,62 @@ fecha_inicio_central  <- as.Date("2023-01-01")  # 003 centrales obreras
 fecha_inicio_empresas <- as.Date("2023-01-01")  # 004 tipo de empresa
 fecha_inicio_mapas    <- as.Date("2017-01-01")  # 005 entidades · 006 emplazamientos
 fecha_inicio_huelgas  <- as.Date("2007-01-01")  # 007 serie anual de huelgas
-fecha_inicio_mir      <- as.Date("2012-01-01")  # 009 MIR (historia larga)
-fecha_inicio_sectores <- as.Date("2021-01-01")  # 010 sectores
+fecha_inicio_mir      <- as.Date("2012-01-01")  # 901 MIR (historia larga)
+fecha_inicio_sectores <- as.Date("2021-01-01")  # 902 sectores
 
 # ── rutas ─────────────────────────────────────────────────────────────────────
 # ruta_dt_automatizacion() resuelve la raíz de OneDrive desde el entorno, así que
 # no se toca al cambiar de equipo.
 
 dest_graphs <- ruta_dt_automatizacion("graphs")
+dest_bases  <- ruta_dt_automatizacion("bases")
+
+# ── interruptor de copia a la carpeta compartida ──────────────────────────────
+# proyectosDT es carpeta compartida de la Dirección Técnica. Para pruebas, para
+# correr un mes viejo o para verificar portabilidad fuera del árbol CAEL, se
+# apaga la copia externa sin tocar el código:
+#
+#   options(cnsm_copiar_dt = FALSE)   # antes de sourcear 000_config.R
+#   Sys.setenv(CNSM_COPIAR_DT = "false")
+#
+# Por defecto está encendida: el flujo mensual normal sí vuelca a la DT.
+copiar_dt <- getOption(
+  "cnsm_copiar_dt",
+  !identical(tolower(Sys.getenv("CNSM_COPIAR_DT", "true")), "false")
+)
+
+if (!isTRUE(copiar_dt)) {
+  message("· Copia a proyectosDT DESACTIVADA (cnsm_copiar_dt = FALSE). ",
+          "Las salidas se quedan en el proyecto.")
+  dest_graphs <- NULL
+  dest_bases  <- NA_character_
+}
 
 # Fijar la opción evita repetir `dest = ...` en cada llamada a
 # guardar_grafica_conasami().
 options(cnsm_dest_graphs = dest_graphs)
+
+# ── INPC (insumo del proyecto hermano comportamiento_precios) ─────────────────
+# Lo consume 901_extra_mir.R para calcular la variación anual.
+#
+# Orden de búsqueda:
+#   1. bases/ de la DT — comportamiento_precios deja ahí inpc.csv cada mes. Es la
+#      fuente preferida porque no depende de dónde viva este proyecto.
+#   2. Proyecto hermano en el árbol CAEL, para quien trabaja en local sin haber
+#      corrido el pipeline de precios.
+#
+# Antes era la ruta relativa "../comportamiento_precios/data/inpc.csv", que se
+# resolvía contra el WORKING DIRECTORY (no contra el ancla del .Rproj) y obligaba
+# a que el proyecto hermano estuviera al lado. Devuelve NA_character_ si no
+# aparece en ningún lado; el script que la use decide qué hacer.
+ruta_inpc <- local({
+  candidatas <- c(
+    ruta_dt_automatizacion("bases", "inpc.csv"),
+    here::here("..", "comportamiento_precios", "data", "inpc.csv")
+  )
+  encontrada <- candidatas[file.exists(candidatas)]
+  if (length(encontrada) == 0) NA_character_ else encontrada[1]
+})
 
 # ── dispositivo gráfico en sesiones no interactivas ───────────────────────────
 # Bajo Rscript el dispositivo por defecto es pdf(), que no conoce "Noto Sans" y
@@ -121,8 +172,12 @@ options(negociaciones = list(
   ruta_cis       = here::here("inputs", "cis_csv"),
   ruta_catalogos = here::here("inputs", "catalogos"),
   ruta_outputs   = here::here("outputs"),
+  ruta_tablas    = here::here("outputs", "tablas"),
+  ruta_sm        = here::here("inputs", "salario_minimo_aumentos.csv"),
+  ruta_inpc      = ruta_inpc,
 
-  dest_graphs = dest_graphs
+  dest_graphs = dest_graphs,
+  dest_bases  = dest_bases
 ))
 
 message("Config del pipeline lista — mes de interés: ",
@@ -178,7 +233,7 @@ verificar_insumos <- function(fecha = getOption("negociaciones")$fecha_interes) 
   }
 
   filas <- list(
-    list("negociaciones_stata / j_federal", "002 · 009",
+    list("negociaciones_stata / j_federal", "002 · 901",
          max_hoja(f_poligonos, "j_federal"), "estricto"),
     list("negociaciones_stata / j_local",   "002",
          max_hoja(f_poligonos, "j_local"), "rezago"),
@@ -189,15 +244,27 @@ verificar_insumos <- function(fecha = getOption("negociaciones")$fecha_interes) 
     list("negociaciones_stata / huelgas",   "007",
          seguro(as.Date(paste0(max(read_excel(f_poligonos, sheet = "huelgas")$fecha,
                                    na.rm = TRUE), "-12-01"))), "anual"),
-    list("negociaciones_central / ctm",     "003 · 009",
+    list("negociaciones_central / ctm",     "003 · 901",
          max_hoja(f_central, "ctm"), "estricto"),
     list("5.2.5 Emplazamientos",            "006",
          seguro(as.Date(file.info(f_emplaza)$mtime)), "archivo"),
-    list("cuadro4 huelgas vigentes (CIS)",  "007 · 008",
+    list("cuadro4 huelgas vigentes (CIS)",  "007 · 013 · 900",
          seguro(max(as.Date(read_csv(f_cis, show_col_types = FALSE)$fecha_reporte),
                     na.rm = TRUE)), "estricto"),
-    list("SCIAN del mes",                   "010 · 011",
-         if (is.na(f_scian)) NA else seguro(as.Date(file.info(f_scian)$mtime)), "rezago")
+    list("SCIAN del mes",                   "011 · 902",
+         if (is.na(f_scian)) NA else seguro(as.Date(file.info(f_scian)$mtime)), "rezago"),
+    # Aumentos del salario mínimo: se agrega una fila cada 1 de enero. La regla
+    # "anual" basta — lo que importa es que el año en curso ya esté capturado.
+    list("salario_minimo_aumentos.csv",     "901",
+         seguro(as.Date(sprintf("%d-12-01",
+                                max(read_csv(cfg$ruta_sm,
+                                             show_col_types = FALSE)$anio,
+                                    na.rm = TRUE)))), "anual"),
+    list("inpc.csv (comportamiento_precios)", "901",
+         if (is.na(cfg$ruta_inpc)) NA
+         else seguro(max(as.Date(read_csv(cfg$ruta_inpc,
+                                          show_col_types = FALSE)$date),
+                         na.rm = TRUE)), "estricto")
   )
 
   cat("\n── Cobertura de insumos · mes objetivo:",
@@ -220,12 +287,18 @@ verificar_insumos <- function(fecha = getOption("negociaciones")$fecha_interes) 
       paste0("DESACTUALIZADO (", format(ultima, "%m-%Y"), ")")
     }
 
-    cat(sprintf("  %-34s %-11s %s\n", nombre, scripts, estado))
+    cat(sprintf("  %-36s %-16s %s\n", nombre, scripts, estado))
   }
 
   if (is.na(f_scian))
     cat("\n  Nota: no hay archivo SCIAN para", format(fecha, "%B %Y"),
         "en inputs/stps_scian/\n")
+
+  if (is.na(cfg$ruta_inpc))
+    cat("\n  Nota: no se encontró inpc.csv. 901_extra_mir.R lo necesita.\n",
+        "        Corre antes el pipeline de comportamiento_precios (deja el\n",
+        "        archivo en bases/ de la DT), o coloca ese proyecto como\n",
+        "        carpeta hermana de este.\n", sep = "")
 
   cat("\n")
   invisible(NULL)

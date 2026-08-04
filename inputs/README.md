@@ -132,3 +132,25 @@ En `_archivo/insumos_manuales/`, fuera del pipeline desde la reorganización de 
 
 En `_archivo/insumos_viejos/`: vintages anteriores del archivo maestro, la carpeta `coahuila/` y
 salidas de intentos de scraping.
+
+## Insumos que NO se descargan solos
+
+Los deja Héctor antes de ausentarse. Si falta alguno, el preflight `verificar_insumos()`
+lo marca como `DESACTUALIZADO` o `FALTA` al arrancar el master.
+
+| Archivo | Origen | Cadencia |
+|---|---|---|
+| `stps_poligonos/negociaciones_stata.xlsx` | Portal Poligonos STPS (IBM Cognos) | mensual, se sobrescribe |
+| `stps_poligonos/negociaciones_central.xlsx` | idem | mensual, se sobrescribe |
+| `stps_poligonos/5.2.5 Emplazamientos a Huelgas por Entidad Federativa.xlsx` | idem | mensual, se sobrescribe |
+| `stps_poligonos/incrementos_sector.xlsx` | idem | mensual, se sobrescribe |
+| `stps_scian/negociaciones_scian_{mes} {anio}.xlsx` | idem | mensual, **archivo nuevo cada mes** |
+| `cis_pdf/*.pdf` | Tarjetas semanales del CIS, llegan por correo | semanal |
+| `salario_minimo_aumentos.csv` | Se edita a mano | **anual**, cada 1 de enero |
+
+El portal Cognos usa sesiones dinamicas con tokens y polling asincrono; resistio `rvest`,
+`RSelenium`, `chromote` y `httr2`. La descarga sigue siendo manual (ver CLAUDE.md).
+
+**Nombre del archivo SCIAN:** el mes va en palabra y minusculas (`negociaciones_scian_junio
+2026.xlsx`). `ruta_scian_mes()` tolera espacios de mas, pero no otro formato. El titulo
+interno del Excel NO sirve para fechar el archivo: el de junio 2026 dice "MARZO 2024".

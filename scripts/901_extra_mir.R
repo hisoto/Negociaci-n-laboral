@@ -7,6 +7,11 @@
 #   MIR). Incluye incremento nominal y la variación anual del INPC de la
 #   jurisdicción federal.
 #
+#   EXTRA (prefijo 9xx): no forma parte del informe mensual de la DT. Lo corre
+#   Master_negociaciones.R (flujo local completo), NO
+#   Master_informe_negociaciones.R, y no viaja en la copia de la carpeta
+#   compartida. Sigue escribiendo en graphs/09_mir/ para no partir el histórico.
+#
 # Autor:  Héctor Iván Soto Parra
 # Área:   Coordinación para el Análisis de la Economía Laboral (CAEL), CONASAMI
 #
@@ -62,12 +67,27 @@ federal <- read_excel(file.path(cfg$ruta_poligonos, "negociaciones_stata.xlsx"),
   ) |>
   filter(fecha >= cfg$fecha_inicio_mir & fecha <= cfg$fecha_interes)
 
-# ── variación anual del INPC (comportamiento_precios) ─────────────────────────
-# Fuente: proyecto hermano; serie nacional general (api == "v_inpc"). El CSV trae
-# el nivel del índice, así que la variación interanual se calcula aquí.
-ruta_inpc <- "../comportamiento_precios/data/inpc.csv"
+# ── aumentos anuales del salario mínimo ───────────────────────────────────────
+# Vienen de inputs/salario_minimo_aumentos.csv, no de un case_when en el código:
+# cada 1 de enero se agrega una fila al CSV y no se toca este script. Son tres
+# series distintas — la fijación de la jurisdicción federal, la de las centrales
+# obreras y el aumento total (fijación + MIR).
+aumentos_sm <- read_csv(cfg$ruta_sm, show_col_types = FALSE)
 
-inpc_var <- read_csv(ruta_inpc, show_col_types = FALSE) |>
+# ── variación anual del INPC (comportamiento_precios) ─────────────────────────
+# Serie nacional general (api == "v_inpc"). El CSV trae el nivel del índice, así
+# que la variación interanual se calcula aquí. cfg$ruta_inpc apunta primero a
+# bases/ de la DT y, si no está, al proyecto hermano (ver 000_config.R).
+if (is.na(cfg$ruta_inpc)) {
+  stop(
+    "No se encontró inpc.csv.\n",
+    "Corre antes el pipeline de comportamiento_precios (deja el archivo en\n",
+    "bases/ de la DT), o coloca ese proyecto como carpeta hermana de este.",
+    call. = FALSE
+  )
+}
+
+inpc_var <- read_csv(cfg$ruta_inpc, show_col_types = FALSE) |>
   filter(api == "v_inpc") |>
   arrange(date) |>
   mutate(
@@ -76,36 +96,14 @@ inpc_var <- read_csv(ruta_inpc, show_col_types = FALSE) |>
   ) |>
   select(fecha, inpc_var)
 
-# Aumentos anuales del salario mínimo (escalonados por año)
 tabla_federal <- federal |>
   select(fecha, year, mes, nominal) |>
-  mutate(
-    aumento_fijacion = case_when(
-      year == 2017 ~ 4.1,
-      year == 2018 ~ 4.1,
-      year == 2019 ~ 5.5,
-      year == 2020 ~ 5.7,
-      year == 2021 ~ 6.5,
-      year == 2022 ~ 10.1,
-      year == 2023 ~ 10.9,
-      year == 2024 ~ 6.8,
-      year == 2025 ~ 6.8,
-      year == 2026 ~ 6.9,
-      TRUE ~ NA_real_
-    ),
-    aumento_total_sm = case_when(
-      year == 2017 ~ 9.6,
-      year == 2018 ~ 10.4,
-      year == 2019 ~ 16.2,
-      year == 2020 ~ 20.0,
-      year == 2021 ~ 15.0,
-      year == 2022 ~ 22.0,
-      year == 2023 ~ 20.0,
-      year == 2024 ~ 20.0,
-      year == 2025 ~ 12.0,
-      year == 2026 ~ 13.0,
-      TRUE ~ NA_real_
-    )
+  left_join(
+    aumentos_sm |>
+      select(year = anio,
+             aumento_fijacion = aumento_fijacion_federal,
+             aumento_total_sm),
+    by = "year"
   ) |>
   # Unir la variación anual del INPC por mes (protegido con floor_date por si las
   # fechas del Excel no caen en día 01).
@@ -195,20 +193,12 @@ centrales <- bind_rows(
   clean_names() |>
   mutate(year = as.integer(year)) |>
   filter(fecha >= cfg$fecha_inicio_mir & fecha <= cfg$fecha_interes) |>
-  mutate(
-    aumento_fijacion = case_when(
-      year == 2017 ~ 3.9,
-      year == 2018 ~ 5.0,
-      year == 2019 ~ 5.0,
-      year == 2020 ~ 5.0,
-      year == 2021 ~ 6.0,
-      year == 2022 ~ 9.0,
-      year == 2023 ~ 10.0,
-      year == 2024 ~ 6.0,
-      year == 2025 ~ 6.5,
-      year == 2026 ~ 6.5,
-      TRUE ~ NA_real_
-    )
+  # Ojo: la fijación que se compara con las centrales NO es la misma serie que la
+  # de la jurisdicción federal de arriba (p. ej. 2019: 5.0 vs 5.5).
+  left_join(
+    aumentos_sm |>
+      select(year = anio, aumento_fijacion = aumento_fijacion_central),
+    by = "year"
   )
 
 niveles_central <- c(
